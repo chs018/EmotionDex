@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Dashboard — EmotionDex</title>
+<meta name="description" content="(Removed) Dashboard page. Redirecting to Emotion Scanner.">
+<meta http-equiv="refresh" content="0; url=scanner.html">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+.dash-page { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+@media (max-width: 1024px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+.kpi-card {
+  background: rgba(37,42,74,0.7);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(255,203,5,0.1);
+  transition: all 0.3s;
+  position: relative; overflow: hidden;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+}
+
+.kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+
+.kpi-label { font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 600; color: rgba(248,249,250,0.5); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+.kpi-value { font-family: 'Orbitron', monospace; font-size: 2.5rem; font-weight: 900; line-height: 1; }
+.kpi-delta { font-size: 0.8rem; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.3rem; font-family: 'Rajdhani', sans-serif; }
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+.chart-card {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,203,5,0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.chart-card h3 { font-family: 'Orbitron', monospace; font-size: 0.85rem; color: var(--electric-yellow); margin-bottom: 1rem; letter-spacing: 0.05em; }
+
+.bottom-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; }
+@media (max-width: 900px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+/* Ticket queue */
+.ticket-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  background: rgba(27,31,59,0.6);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.ticket-item:hover { border-color: rgba(255,203,5,0.3); transform: translateX(4px); }
+
+.ticket-avatar {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.ticket-info { flex: 1; min-width: 0; }
+.ticket-name { font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ticket-msg { font-size: 0.75rem; color: rgba(248,249,250,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ticket-meta { text-align: right; flex-shrink: 0; }
+.ticket-time { font-size: 0.7rem; color: rgba(248,249,250,0.4); }
+
+/* Agent rec */
+.agent-rec {
+  background: rgba(42,117,187,0.1);
+  border: 1px solid rgba(42,117,187,0.3);
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.agent-rec-title { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.85rem; color: var(--poke-blue); margin-bottom: 0.25rem; }
+.agent-rec p { font-size: 0.8rem; color: rgba(248,249,250,0.6); line-height: 1.5; }
+
+/* Heatmap cells */
+.heatmap { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.heat-cell { height: 24px; border-radius: 4px; }
+
+/* Live indicator */
+.live-dot {
+  width: 8px; height: 8px;
+  background: var(--calm);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--calm);
+  animation: blink 1s infinite;
+  display: inline-block;
+}
+</style>
+</head>
+<body>
+  <noscript>
+    <div style="padding:2rem;font-family:Inter,system-ui;background:#1B1F3B;color:#F8F9FA;">
+      Dashboard was removed. Go to <a href="scanner.html" style="color:#FFCB05;">Emotion Scanner</a>.
+    </div>
+  </noscript>
+  <script>window.location.replace('scanner.html');</script>
+<canvas id="particles-canvas"></canvas>
+<nav class="navbar" id="main-nav"></nav>
+
+<div class="page-content">
+<div class="dash-page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <h1 class="section-title">📊 Support Co-Pilot Dashboard</h1>
+      <p class="section-subtitle" style="margin-bottom:0;">Mission control for your emotion-aware support team</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.75rem;">
+      <span class="live-dot"></span>
+      <span style="font-family:'Rajdhani',sans-serif;font-size:0.85rem;color:var(--calm);">LIVE</span>
+      <span style="font-size:0.75rem;color:rgba(248,249,250,0.4);" id="last-update">Updating...</span>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card" style="border-top:3px solid var(--angry);">
+      <div class="kpi-label">🔥 Angry Users</div>
+      <div class="kpi-value" style="color:var(--angry);" id="kpi-angry">0</div>
+      <div class="kpi-delta" style="color:var(--poke-red);">▲ <span id="kpi-angry-delta">+3</span> vs last hour</div>
+    </div>
+    <div class="kpi-card" style="border-top:3px solid var(--anxiety);">
+      <div class="kpi-label">🔮 Anxious Users</div>
+      <div class="kpi-value" style="color:var(--anxiety);" id="kpi-anxious">0</div>
+      <div class="kpi-delta" style="color:var(--anxiety);">▲ <span>+7</span> vs last hour</div>
+    </div>
+    <div class="kpi-card" style="border-top:3px solid var(--happy);">
+      <div class="kpi-label">⚡ Satisfaction Score</div>
+      <div class="kpi-value" style="color:var(--happy);" id="kpi-sat">0%</div>
+      <div class="kpi-delta" style="color:var(--calm);">▲ +2.3% vs yesterday</div>
+    </div>
+    <div class="kpi-card" style="border-top:3px solid var(--poke-red);">
+      <div class="kpi-label">🚨 Active Escalations</div>
+      <div class="kpi-value" style="color:var(--poke-red);" id="kpi-esc">0</div>
+      <div class="kpi-delta" style="color:var(--poke-red);animation:blink 1s infinite;">● CRITICAL</div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>🥧 Emotion Distribution</h3>
+      <canvas id="emotion-pie" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Priority Heatmap -->
+  <div class="chart-card" style="margin-bottom:1.5rem;">
+    <h3>🔥 Priority Queue Heatmap — Last 8 Hours</h3>
+    <div style="display:grid;grid-template-columns:80px 1fr;gap:0.5rem;align-items:center;">
+      <div></div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;text-align:center;font-size:0.65rem;color:rgba(248,249,250,0.4);font-family:'Rajdhani',sans-serif;">
+        <span>9AM</span><span>10AM</span><span>11AM</span><span>12PM</span><span>1PM</span><span>2PM</span><span>3PM</span><span>4PM</span>
+      </div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(248,249,250,0.4);text-align:right;padding-right:0.5rem;">🔥 Angry</div>
+      <div id="heatmap-angry" class="heatmap"></div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(248,249,250,0.4);text-align:right;padding-right:0.5rem;">🔮 Anxious</div>
+      <div id="heatmap-anxious" class="heatmap"></div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(248,249,250,0.4);text-align:right;padding-right:0.5rem;">💧 Sad</div>
+      <div id="heatmap-sad" class="heatmap"></div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;color:rgba(248,249,250,0.4);text-align:right;padding-right:0.5rem;">⚡ Happy</div>
+      <div id="heatmap-happy" class="heatmap"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Grid -->
+  <div class="bottom-grid">
+    <!-- Ticket Queue -->
+    <div class="chart-card">
+      <h3>🎫 Live Ticket Queue</h3>
+      <div id="ticket-queue"></div>
+    </div>
+
+    <!-- Agent Recommendations -->
+    <div>
+      <div class="chart-card" style="margin-bottom:1rem;">
+        <h3>🤖 Agent Recommendations</h3>
+        <div class="agent-rec">
+          <div class="agent-rec-title">🔥 Fire-Type Alert</div>
+          <p>3 angry customers in queue. Assign senior agents Sarah K. and Mike R. immediately.</p>
+        </div>
+        <div class="agent-rec">
+          <div class="agent-rec-title">⏱ Response Time Warning</div>
+          <p>Average response time exceeded 5 minutes. Consider activating backup AI responses.</p>
+        </div>
+        <div class="agent-rec">
+          <div class="agent-rec-title">⚡ Positive Trend</div>
+          <p>Satisfaction score up 2.3% today. Team performance is excellent — share results!</p>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>🏆 Top Emotion Triggers</h3>
+        <div id="top-triggers"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+renderNav();
+initGSAP();
+
+// ── Try to load live KPIs from backend ────────────────────────────────────
+async function loadLiveKPIs() {
+  try {
+    const res = await API.dashboard();
+    const kpis = res.data.kpis;
+    animateCounter(document.getElementById('kpi-angry'),    kpis.angryUsers);
+    animateCounter(document.getElementById('kpi-anxious'),   kpis.anxiousUsers);
+    animateCounter(document.getElementById('kpi-esc'),       kpis.activeEscalations);
+    const satEl = document.getElementById('kpi-sat');
+    let sv = 0;
+    const si = setInterval(() => {
+      sv += 2;
+      satEl.textContent = Math.min(sv, kpis.satisfactionPct) + '%';
+      if (sv >= kpis.satisfactionPct) clearInterval(si);
+    }, 30);
+  } catch {
+    // Fallback to simulated values
+    animateCounter(document.getElementById('kpi-angry'),   14);
+    animateCounter(document.getElementById('kpi-anxious'),  23);
+    animateCounter(document.getElementById('kpi-esc'),       5);
+    const satEl = document.getElementById('kpi-sat');
+    let sv = 0;
+    const si = setInterval(() => { sv+=2; satEl.textContent=sv+'%'; if(sv>=78)clearInterval(si); }, 30);
+  }
+}
+
+loadLiveKPIs();
+
+
+// Pie chart
+const pieCtx = document.getElementById('emotion-pie').getContext('2d');
+new Chart(pieCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Happy ⚡', 'Calm 🌿', 'Anxious 🔮', 'Angry 🔥', 'Sad 💧', 'Love ✨'],
+    datasets: [{
+      data: [32, 24, 18, 12, 9, 5],
+      backgroundColor: ['#FFD93D','#6BCB77','#9B5DE5','#FF4D4D','#4D96FF','#FF66C4'],
+      borderColor: '#1B1F3B', borderWidth: 3,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { color: 'rgba(248,249,250,0.7)', font: { size: 11 }, boxWidth: 12, padding: 12 } },
+      tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw}%` } }
+    },
+    cutout: '65%'
+  }
+});
+
+// Heatmap
+function buildHeatmap(id, color, intensity) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const v = intensity[i] || Math.random();
+    const cell = document.createElement('div');
+    cell.className = 'heat-cell';
+    cell.style.background = color;
+    cell.style.opacity = (0.1 + v * 0.9).toFixed(2);
+    cell.title = `${Math.round(v * 20)} tickets`;
+    el.appendChild(cell);
+  }
+}
+
+buildHeatmap('heatmap-angry', '#FF4D4D', [0.9,0.6,0.4,0.8,0.7,0.5,0.3,0.6]);
+buildHeatmap('heatmap-anxious', '#9B5DE5', [0.5,0.7,0.8,0.6,0.9,0.7,0.5,0.4]);
+buildHeatmap('heatmap-sad', '#4D96FF', [0.3,0.4,0.5,0.3,0.2,0.6,0.4,0.3]);
+buildHeatmap('heatmap-happy', '#FFD93D', [0.4,0.5,0.7,0.8,0.9,0.8,0.7,0.8]);
+
+// Tickets
+const tickets = [
+  { name: 'Alex R.', msg: "I've been waiting 4 days and no one responded!", emotion: '🔥', type: 'type-fire', time: '2m ago', priority: 'CRITICAL' },
+  { name: 'Sarah M.', msg: "I'm really worried about my refund status...", emotion: '🔮', type: 'type-psychic', time: '5m ago', priority: 'HIGH' },
+  { name: 'John D.', msg: "This is absolutely terrible customer service!", emotion: '🔥', type: 'type-fire', time: '7m ago', priority: 'CRITICAL' },
+  { name: 'Priya K.', msg: "How do I track my package? Can someone help?", emotion: '🌿', type: 'type-grass', time: '12m ago', priority: 'NORMAL' },
+  { name: 'Tom W.', msg: "Your product is absolutely amazing, thank you!", emotion: '⚡', type: 'type-electric', time: '15m ago', priority: 'POSITIVE' },
+  { name: 'Emma L.', msg: "I'm so disappointed, this wasn't what I expected.", emotion: '💧', type: 'type-water', time: '18m ago', priority: 'HIGH' },
+];
+
+const queueEl = document.getElementById('ticket-queue');
+tickets.forEach(t => {
+  queueEl.innerHTML += `
+    <div class="ticket-item">
+      <div class="ticket-avatar" style="background:rgba(37,42,74,0.8);">${t.emotion}</div>
+      <div class="ticket-info">
+        <div class="ticket-name">${t.name}</div>
+        <div class="ticket-msg">${t.msg}</div>
+      </div>
+      <div class="ticket-meta">
+        <div><span class="type-badge ${t.type}" style="font-size:0.65rem;padding:0.15rem 0.5rem;">${t.priority}</span></div>
+        <div class="ticket-time" style="margin-top:0.25rem;">${t.time}</div>
+      </div>
+    </div>`;
+});
+
+// Top triggers
+const triggers = [
+  { label: 'Long wait time', pct: 87, color: '#FF4D4D' },
+  { label: 'No response received', pct: 73, color: '#FF8C00' },
+  { label: 'Refund delays', pct: 61, color: '#9B5DE5' },
+  { label: 'Product issues', pct: 45, color: '#4D96FF' },
+  { label: 'Shipping delays', pct: 38, color: '#6BCB77' },
+];
+
+const trigEl = document.getElementById('top-triggers');
+triggers.forEach(t => {
+  trigEl.innerHTML += `
+    <div style="margin-bottom:0.75rem;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+        <span style="font-size:0.8rem;color:rgba(248,249,250,0.7);">${t.label}</span>
+        <span style="font-family:'Orbitron',monospace;font-size:0.7rem;color:${t.color};">${t.pct}%</span>
+      </div>
+      <div class="hp-bar-container"><div class="hp-bar" style="width:${t.pct}%;background:${t.color}"></div></div>
+    </div>`;
+});
+
+// Live timestamp (keeps "LIVE" feel without the sentiment stream graph)
+function updateLastUpdate() {
+  const t = new Date();
+  document.getElementById('last-update').textContent = 'Updated ' + t.toLocaleTimeString();
+}
+
+updateLastUpdate();
+setInterval(updateLastUpdate, 5000);
+</script>
+</body>
+</html>

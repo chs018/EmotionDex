@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EmotionDex — Catch Customer Emotions Before They Escalate</title>
+<meta name="description" content="EmotionDex is an AI-powered Pokémon-themed customer support co-pilot that detects emotions, prioritizes responses, and visualizes sentiment in a gamified interface.">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+/* ── Hero ── */
+.hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 5rem 2rem 3rem;
+  position: relative;
+  background: radial-gradient(ellipse at 50% 30%, rgba(42,117,187,0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 60%, rgba(155,93,229,0.1) 0%, transparent 50%);
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(255,203,5,0.1);
+  border: 1px solid rgba(255,203,5,0.3);
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  color: var(--electric-yellow);
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.1em;
+}
+
+.hero h1 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+.hero-tagline {
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  color: rgba(248,249,250,0.7);
+  max-width: 600px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.6;
+}
+
+.hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+
+/* Pokédex scanner demo */
+.pokedex-demo {
+  width: 320px; max-width: 90vw;
+  background: linear-gradient(135deg, #1a1f3e, #252a4a);
+  border: 3px solid var(--electric-yellow);
+  border-radius: 20px;
+  padding: 1.5rem;
+  margin: 0 auto 3rem;
+  box-shadow: var(--glow-yellow), 0 20px 60px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.pokedex-screen {
+  background: #0a0e1a;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 2px solid rgba(255,203,5,0.3);
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pokedex-screen-text {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  color: var(--electric-yellow);
+}
+
+.scanning-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  color: var(--calm);
+  animation: blink 1s infinite;
+}
+
+.pokedex-lights {
+  display: flex; gap: 0.5rem; margin-bottom: 0.5rem;
+}
+
+.pdx-light {
+  width: 12px; height: 12px; border-radius: 50%;
+}
+
+/* Emotion type icons floating */
+.floating-icons {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; overflow: hidden;
+}
+
+.float-icon {
+  position: absolute;
+  font-size: 2rem;
+  opacity: 0.15;
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Feature cards */
+.features-section { padding: 5rem 2rem; }
+
+.feature-card {
+  background: rgba(37,42,74,0.6);
+  border: 1px solid rgba(255,203,5,0.15);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.4s;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--electric-yellow), var(--anxiety), var(--love));
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(255,203,5,0.5);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4), var(--glow-yellow);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.feature-card h3 {
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  color: var(--electric-yellow);
+  margin-bottom: 0.75rem;
+}
+
+.feature-card p {
+  color: rgba(248,249,250,0.6);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Emotion map section */
+.emotion-map { padding: 5rem 2rem; background: rgba(37,42,74,0.3); }
+
+.emotion-type-card {
+  background: rgba(27,31,59,0.8);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.emotion-type-card:hover { transform: scale(1.05); }
+
+.emotion-type-big { font-size: 3rem; }
+
+.emotion-type-card h4 {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Stats banner */
+.stats-banner {
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, rgba(42,117,187,0.2), rgba(155,93,229,0.2));
+  border-top: 1px solid rgba(255,203,5,0.1);
+  border-bottom: 1px solid rgba(255,203,5,0.1);
+}
+
+.stat-box { text-align: center; }
+.stat-number {
+  font-family: 'Orbitron', monospace;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--electric-yellow);
+  text-shadow: var(--glow-yellow);
+}
+.stat-label { color: rgba(248,249,250,0.6); font-size: 0.9rem; margin-top: 0.25rem; }
+
+/* CTA section */
+.cta-section {
+  padding: 6rem 2rem;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 50%, rgba(155,93,229,0.15) 0%, transparent 70%);
+}
+
+.cta-section h2 { font-family: 'Orbitron', monospace; font-size: clamp(1.5rem, 4vw, 2.5rem); margin-bottom: 1rem; }
+
+/* Footer */
+footer {
+  background: rgba(27,31,59,0.9);
+  border-top: 1px solid rgba(255,203,5,0.1);
+  padding: 2rem;
+  text-align: center;
+  color: rgba(248,249,250,0.4);
+  font-size: 0.85rem;
+}
+
+footer .footer-logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.2rem;
+  color: var(--electric-yellow);
+  margin-bottom: 0.5rem;
+}
+</style>
+</head>
+<body>
+<canvas id="particles-canvas"></canvas>
+
+<!-- Navbar -->
+<nav class="navbar" id="main-nav"></nav>
+
+<div class="page-content">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="floating-icons">
+      <span class="float-icon" style="top:15%;left:5%;animation-delay:0s">🔥</span>
+      <span class="float-icon" style="top:25%;right:8%;animation-delay:0.5s">💧</span>
+      <span class="float-icon" style="top:60%;left:10%;animation-delay:1s">⚡</span>
+      <span class="float-icon" style="top:70%;right:12%;animation-delay:1.5s">🌿</span>
+      <span class="float-icon" style="top:40%;left:3%;animation-delay:2s">🔮</span>
+      <span class="float-icon" style="top:80%;right:5%;animation-delay:2.5s">✨</span>
+    </div>
+
+    <div style="position:relative;z-index:2;">
+      <div class="hero-badge">
+        <span>⚡</span> HACKATHON 2026 — AI Customer Intelligence
+      </div>
+
+      <h1>
+        <span class="gradient-text">EmotionDex</span>
+      </h1>
+
+      <p class="hero-tagline">
+        "Catch Customer Emotions Before They Escalate."<br>
+        <span style="font-size:0.9rem;color:rgba(248,249,250,0.5);">The World's First Pokémon-Themed AI Sentiment Co-Pilot</span>
+      </p>
+
+      <!-- Pokédex Demo Widget -->
+      <div class="pokedex-demo animate-float">
+        <div class="pokedex-lights">
+          <div class="pdx-light" style="background:#FF3B30;box-shadow:0 0 8px #FF3B30"></div>
+          <div class="pdx-light" style="background:#FFD93D;box-shadow:0 0 8px #FFD93D"></div>
+          <div class="pdx-light" style="background:#6BCB77;box-shadow:0 0 8px #6BCB77"></div>
+        </div>
+        <div class="pokedex-screen scanner-wrapper">
+          <div class="scan-line"></div>
+          <div class="pokedex-screen-text">
+            <div style="margin-bottom:0.5rem;color:rgba(255,203,5,0.5);font-size:0.7rem">▶ SCANNING CONVERSATION...</div>
+            <div id="demo-text" style="min-height:60px;font-size:0.75rem;line-height:1.6;color:#aaa;"></div>
+          </div>
+        </div>
+        <div id="demo-result" style="text-align:left;min-height:60px;"></div>
+      </div>
+
+      <div class="hero-buttons">
+        <button class="btn-primary" onclick="window.location='scanner.html'">
+          ⚡ Scan an Emotion
+        </button>
+        <button class="btn-secondary" onclick="window.location='pokedex.html'">
+          📖 Emotion Pokédex
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Banner -->
+  <section class="stats-banner">
+    <div style="max-width:1100px;margin:0 auto;" class="grid-4">
+      <div class="stat-box">
+        <div class="stat-number" id="cnt-emotions">0</div>
+        <div class="stat-label">Emotions Detected</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="cnt-accuracy">0</div>
+        <div class="stat-label">% Model Accuracy</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="cnt-types">0</div>
+        <div class="stat-label">Emotion Types</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="cnt-response">0</div>
+        <div class="stat-label">ms Avg Response</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features-section">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:3rem;">
+        <h2 class="section-title">Power-Ups for Your Support Team</h2>
+        <p class="section-subtitle">Six core abilities that transform your customer support workflow</p>
+      </div>
+      <div class="grid-3">
+        <div class="feature-card animate-on-scroll">
+          <span class="feature-icon">🧠</span>
+          <h3>Emotion Detection</h3>
+          <p>Real-time NLP sentiment analysis. Classify any message into 6 Pokémon emotion types instantly.</p>
+        </div>
+        <div class="feature-card animate-on-scroll">
+          <span class="feature-icon">🎯</span>
+          <h3>Priority Scoring</h3>
+          <p>Automated urgency ranking from 0-100. Angry Fire-types always get critical priority while calm Grass-types queue normally.</p>
+        </div>
+        <div class="feature-card animate-on-scroll">
+          <span class="feature-icon">🤖</span>
+          <h3>AI Reply Generator</h3>
+          <p>Generate empathetic, professional responses in 3 modes: Calm Agent, Premium Support, and Crisis De-escalation.</p>
+        </div>
+        <div class="feature-card animate-on-scroll">
+          <span class="feature-icon">🚨</span>
+          <h3>Escalation Alerts</h3>
+          <p>Fire-type anger and high-risk messages trigger instant alerts so agents can de-escalate before churn.</p>
+        </div>
+        <div class="feature-card animate-on-scroll">
+          <span class="feature-icon">📖</span>
+          <h3>Pokédex Playbook</h3>
+          <p>Clear handling strategies for each emotion type — what to say, what to avoid, and when to escalate.</p>
+        </div>
+        <div class="feature-card animate-on-scroll">
+          <span class="feature-icon">📖</span>
+          <h3>Emotion Pokédex</h3>
+          <p>Complete reference guide for every emotion type with handling strategies, severity meters, and flip-card UI.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Emotion Type Map -->
+  <section class="emotion-map">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:3rem;">
+        <h2 class="section-title">The Emotion Type Chart</h2>
+        <p class="section-subtitle">Every customer emotion mapped to a Pokémon type for instant context</p>
+      </div>
+      <div class="grid-3" style="gap:1rem;">
+        <div class="emotion-type-card" onclick="window.location='pokedex.html'" style="border-color:rgba(255,77,77,0.3);">
+          <span class="emotion-type-big">🔥</span>
+          <span class="type-badge type-fire">Fire Type</span>
+          <h4 style="color:#FF4D4D;">Anger</h4>
+          <p style="font-size:0.8rem;color:rgba(248,249,250,0.5);">Critical Escalation</p>
+        </div>
+        <div class="emotion-type-card" onclick="window.location='pokedex.html'" style="border-color:rgba(77,150,255,0.3);">
+          <span class="emotion-type-big">💧</span>
+          <span class="type-badge type-water">Water Type</span>
+          <h4 style="color:#4D96FF;">Sadness</h4>
+          <p style="font-size:0.8rem;color:rgba(248,249,250,0.5);">Sensitive Support</p>
+        </div>
+        <div class="emotion-type-card" onclick="window.location='pokedex.html'" style="border-color:rgba(255,217,61,0.3);">
+          <span class="emotion-type-big">⚡</span>
+          <span class="type-badge type-electric">Electric Type</span>
+          <h4 style="color:#FFD93D;">Joy</h4>
+          <p style="font-size:0.8rem;color:rgba(248,249,250,0.5);">Positive Interaction</p>
+        </div>
+        <div class="emotion-type-card" onclick="window.location='pokedex.html'" style="border-color:rgba(107,203,119,0.3);">
+          <span class="emotion-type-big">🌿</span>
+          <span class="type-badge type-grass">Grass Type</span>
+          <h4 style="color:#6BCB77;">Calm</h4>
+          <p style="font-size:0.8rem;color:rgba(248,249,250,0.5);">Normal Support</p>
+        </div>
+        <div class="emotion-type-card" onclick="window.location='pokedex.html'" style="border-color:rgba(155,93,229,0.3);">
+          <span class="emotion-type-big">🔮</span>
+          <span class="type-badge type-psychic">Psychic Type</span>
+          <h4 style="color:#9B5DE5;">Anxiety</h4>
+          <p style="font-size:0.8rem;color:rgba(248,249,250,0.5);">Immediate Attention</p>
+        </div>
+        <div class="emotion-type-card" onclick="window.location='pokedex.html'" style="border-color:rgba(255,102,196,0.3);">
+          <span class="emotion-type-big">✨</span>
+          <span class="type-badge type-fairy">Fairy Type</span>
+          <h4 style="color:#FF66C4;">Love</h4>
+          <p style="font-size:0.8rem;color:rgba(248,249,250,0.5);">Positive Satisfaction</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div style="max-width:700px;margin:0 auto;">
+      <div style="font-size:4rem;margin-bottom:1rem;">⚡</div>
+      <h2 class="gradient-text">"Train Smarter Support<br>with Emotion Intelligence."</h2>
+      <p style="color:rgba(248,249,250,0.6);margin:1.5rem 0 2rem;line-height:1.7;">
+        Stop guessing how your customers feel. EmotionDex gives every support agent a superpower — the ability to read, understand, and respond to emotions with AI precision.
+      </p>
+      <div class="hero-buttons">
+        <button class="btn-primary" onclick="window.location='scanner.html'">⚡ Start Scanning</button>
+        <button class="btn-secondary" onclick="window.location='about.html'">📋 View Pitch Deck</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">⚡ EmotionDex</div>
+    <div style="margin-top:1rem;display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;">
+      <a href="index.html" style="color:rgba(248,249,250,0.4);text-decoration:none;">Home</a>
+      <a href="scanner.html" style="color:rgba(248,249,250,0.4);text-decoration:none;">Scanner</a>
+      <a href="pokedex.html" style="color:rgba(248,249,250,0.4);text-decoration:none;">Pokédex</a>
+      <a href="ai-replies.html" style="color:rgba(248,249,250,0.4);text-decoration:none;">AI Replies</a>
+      <a href="about.html" style="color:rgba(248,249,250,0.4);text-decoration:none;">About</a>
+    </div>
+  </footer>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+renderNav();
+initGSAP();
+
+// Demo cycling animation
+const demos = [
+  { text: '"I\'ve been waiting 4 days and nobody helped me!"', emotion: '🔥 Fire Type', label: 'Angry', color: '#FF4D4D', priority: 'CRITICAL' },
+  { text: '"Your product is absolutely amazing! Best purchase ever!"', emotion: '⚡ Electric Type', label: 'Happy', color: '#FFD93D', priority: 'POSITIVE' },
+  { text: '"I\'m really worried my order will arrive in time..."', emotion: '🔮 Psychic Type', label: 'Anxious', color: '#9B5DE5', priority: 'HIGH' },
+  { text: '"I\'m so disappointed, this isn\'t what I expected at all."', emotion: '💧 Water Type', label: 'Sad', color: '#4D96FF', priority: 'HIGH' },
+];
+
+let demoIdx = 0;
+let charIdx = 0;
+let typing = true;
+
+function runDemo() {
+  const d = demos[demoIdx];
+  const textEl = document.getElementById('demo-text');
+  const resultEl = document.getElementById('demo-result');
+
+  if (typing && charIdx < d.text.length) {
+    textEl.textContent = d.text.substring(0, ++charIdx);
+    setTimeout(runDemo, 40);
+  } else if (typing) {
+    typing = false;
+    resultEl.innerHTML = `
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+        <span class="type-badge" style="background:rgba(255,255,255,0.05);color:${d.color};border:1px solid ${d.color}">${d.emotion}</span>
+        <span style="font-family:'Orbitron',monospace;font-size:0.7rem;color:${d.color};">${d.label}</span>
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;padding:2px 8px;border-radius:10px;background:rgba(255,59,48,0.2);color:#FF6B60;margin-left:auto;">${d.priority}</span>
+      </div>`;
+    setTimeout(() => {
+      typing = true; charIdx = 0;
+      demoIdx = (demoIdx + 1) % demos.length;
+      textEl.textContent = '';
+      resultEl.innerHTML = '';
+      runDemo();
+    }, 2500);
+  }
+}
+
+runDemo();
+
+// Counters
+window.addEventListener('load', () => {
+  animateCounter(document.getElementById('cnt-emotions'), 12847);
+  animateCounter(document.getElementById('cnt-accuracy'), 94);
+  animateCounter(document.getElementById('cnt-types'), 6);
+  animateCounter(document.getElementById('cnt-response'), 230);
+});
+</script>
+</body>
+</html>

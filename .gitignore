@@ -1,0 +1,28 @@
+# ── Dependencies (NEVER commit!) ──
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# ── Environment variables ──
+.env
+.env.local
+
+# ── Logs & Cache ──
+logs/
+*.log
+training.log
+.cache/
+
+# ── AI Model Cache (auto-downloads on deploy) ──
+node_modules/.cache/
+models/
+cache/
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+
+# ── OS ──
+.DS_Store
+Thumbs.db
