@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Reply Generator — EmotionDex</title>
+<meta name="description" content="Generate empathetic AI-powered customer support replies in multiple tone modes.">
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+.replies-page { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+
+/* Mode selector — Pokémon battle move style */
+.mode-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+@media (max-width: 700px) { .mode-selector { grid-template-columns: 1fr; } }
+
+.mode-btn {
+  background: rgba(37,42,74,0.7);
+  border: 2px solid rgba(255,203,5,0.15);
+  border-radius: 16px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.mode-btn:hover { transform: translateY(-3px); }
+
+.mode-btn.selected {
+  border-width: 2px;
+  transform: translateY(-3px);
+}
+
+.mode-btn.selected::before { opacity: 1; }
+
+.mode-icon { font-size: 2.5rem; margin-bottom: 0.5rem; display: block; }
+.mode-name { font-family: 'Orbitron', monospace; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.25rem; }
+.mode-desc { font-size: 0.75rem; color: rgba(248,249,250,0.5); line-height: 1.5; }
+.mode-pp { position: absolute; top: 0.75rem; right: 0.75rem; font-family: 'Orbitron', monospace; font-size: 0.65rem; color: rgba(248,249,250,0.4); }
+
+/* Main layout */
+.reply-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 800px) { .reply-layout { grid-template-columns: 1fr; } }
+
+.input-panel, .output-panel {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,203,5,0.15);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.panel-header {
+  background: rgba(27,31,59,0.5);
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(255,203,5,0.1);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  color: rgba(255,203,5,0.7);
+  letter-spacing: 0.1em;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+
+.big-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 1.25rem;
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  resize: none;
+  min-height: 200px;
+  outline: none;
+  line-height: 1.7;
+}
+
+.big-textarea::placeholder { color: rgba(248,249,250,0.2); }
+
+.panel-footer {
+  border-top: 1px solid rgba(255,203,5,0.1);
+  padding: 0.85rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+}
+
+/* API key mini */
+.api-mini {
+  background: rgba(27,31,59,0.8);
+  border: 1px solid rgba(155,93,229,0.3);
+  border-radius: 10px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+
+.api-mini input {
+  flex: 1; min-width: 200px;
+  background: rgba(37,42,74,0.8);
+  border: 1px solid rgba(255,203,5,0.2);
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  color: var(--white);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+/* Tone meter */
+.tone-meters { padding: 1.25rem; border-bottom: 1px solid rgba(255,203,5,0.08); }
+
+/* Reply output */
+.reply-text {
+  padding: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--white);
+  min-height: 200px;
+  white-space: pre-wrap;
+}
+
+.reply-placeholder { color: rgba(248,249,250,0.3); font-style: italic; }
+
+/* Generating animation */
+.generating-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--electric-yellow), var(--anxiety), var(--love));
+  background-size: 200% 100%;
+  animation: shimmer 1s infinite;
+  display: none;
+}
+
+.generating-bar.active { display: block; }
+
+/* Emotion detection mini badge */
+.detected-emotion { padding: 0.75rem 1.25rem; background: rgba(27,31,59,0.4); border-bottom: 1px solid rgba(255,203,5,0.08); display: flex; align-items: center; gap: 0.75rem; }
+
+/* Example prompts */
+.examples-section { margin-top: 2rem; }
+.example-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+@media (max-width: 600px) { .example-grid { grid-template-columns: 1fr; } }
+
+.example-card {
+  background: rgba(37,42,74,0.5);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.85rem;
+  color: rgba(248,249,250,0.7);
+}
+
+.example-card:hover { border-color: rgba(255,203,5,0.3); color: var(--white); background: rgba(255,203,5,0.05); }
+.example-card .ex-tag { font-family: 'Rajdhani', sans-serif; font-size: 0.72rem; font-weight: 700; margin-bottom: 0.25rem; }
+</style>
+</head>
+<body>
+<canvas id="particles-canvas"></canvas>
+<nav class="navbar" id="main-nav"></nav>
+
+<div class="page-content">
+<div class="replies-page">
+  <div style="text-align:center;margin-bottom:2rem;">
+    <h1 class="section-title">🤖 AI Reply Generator</h1>
+    <p class="section-subtitle">Select a battle mode, enter the customer message, and get a perfectly tuned response — generated locally.</p>
+  </div>
+
+  <!-- Mode Selector -->
+  <div class="mode-selector" id="mode-selector">
+    <div class="mode-btn selected" data-mode="calm" onclick="selectMode('calm', this)"
+         style="border-color:rgba(107,203,119,0.5);">
+      <div class="mode-pp">PP: ∞</div>
+      <span class="mode-icon">🌿</span>
+      <div class="mode-name" style="color:#6BCB77;">Calm Agent</div>
+      <div class="mode-desc">Professional, warm, and reassuring. Perfect for standard support interactions.</div>
+    </div>
+    <div class="mode-btn" data-mode="premium" onclick="selectMode('premium', this)"
+         style="--m-color: #FFCB05">
+      <div class="mode-pp">PP: ∞</div>
+      <span class="mode-icon">⭐</span>
+      <div class="mode-name" style="color:#FFCB05;">Premium Support</div>
+      <div class="mode-desc">Elevated, personalized response for VIP customers expecting white-glove service.</div>
+    </div>
+    <div class="mode-btn" data-mode="crisis" onclick="selectMode('crisis', this)">
+      <div class="mode-pp">PP: ∞</div>
+      <span class="mode-icon">🚨</span>
+      <div class="mode-name" style="color:#FF4D4D;">Crisis De-escalation</div>
+      <div class="mode-desc">Urgent empathetic response for angry or distressed customers needing immediate help.</div>
+    </div>
+  </div>
+
+
+  <!-- Main Layout -->
+  <div class="reply-layout">
+    <!-- Input -->
+    <div class="input-panel">
+      <div class="panel-header"><span>💬</span> CUSTOMER MESSAGE INPUT</div>
+      <div class="detected-emotion" id="detected-emotion-mini" style="display:none;">
+        <span id="det-icon">🔥</span>
+        <span class="type-badge" id="det-badge">Fire Type</span>
+        <span style="font-size:0.8rem;color:rgba(248,249,250,0.6);" id="det-label">Angry — Priority: CRITICAL</span>
+      </div>
+      <div class="generating-bar" id="gen-bar"></div>
+      <textarea class="big-textarea" id="customer-msg" placeholder="Paste the customer's message here (supports Indian languages)… Example: I've been waiting 3 days for my refund and nobody is helping me. This is completely unacceptable."
+        oninput="onMsgInput()"></textarea>
+      <div class="panel-footer">
+        <span style="font-family:'Rajdhani',sans-serif;font-size:0.8rem;color:rgba(248,249,250,0.4);" id="char-count">0 characters</span>
+        <button class="btn-primary" onclick="generateReply()" id="gen-btn" style="padding:0.5rem 1.25rem;font-size:0.8rem;">⚡ Generate Reply</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="output-panel">
+      <div class="panel-header"><span>🤖</span> AI-GENERATED RESPONSE</div>
+      <div class="tone-meters" id="tone-meters" style="display:none;">
+        <div class="stat-row"><span class="stat-label">Empathy</span><div style="flex:1;"><div class="hp-bar-container"><div class="hp-bar" id="tone-empathy" style="width:0%;background:#6BCB77;"></div></div></div><span class="stat-value" id="tv-empathy">0</span></div>
+        <div class="stat-row"><span class="stat-label">Urgency</span><div style="flex:1;"><div class="hp-bar-container"><div class="hp-bar" id="tone-urgency" style="width:0%;background:#FF4D4D;"></div></div></div><span class="stat-value" id="tv-urgency">0</span></div>
+        <div class="stat-row"><span class="stat-label">Professional</span><div style="flex:1;"><div class="hp-bar-container"><div class="hp-bar" id="tone-prof" style="width:0%;background:#4D96FF;"></div></div></div><span class="stat-value" id="tv-prof">0</span></div>
+      </div>
+      <div class="generating-bar" id="gen-bar-out"></div>
+      <div class="reply-text" id="reply-output">
+        <span class="reply-placeholder">Your AI-generated response will appear here...
+
+Select a mode, enter a customer message, and click ⚡ Generate Reply to begin.</span>
+      </div>
+      <div class="panel-footer" id="output-footer" style="display:none;">
+        <span style="font-family:'Orbitron',monospace;font-size:0.7rem;color:rgba(248,249,250,0.4);" id="mode-label-out">CALM AGENT MODE</span>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="action-btn action-btn-primary" onclick="copyOutput(event)" style="padding:0.4rem 0.75rem;border-radius:8px;font-size:0.78rem;">📋 Copy</button>
+          <button class="action-btn action-btn-primary" onclick="generateReply()" style="padding:0.4rem 0.75rem;border-radius:8px;font-size:0.78rem;">🔄 Re-gen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example prompts -->
+  <div class="examples-section">
+    <h3 style="font-family:'Orbitron',monospace;font-size:0.9rem;color:rgba(255,203,5,0.6);margin-bottom:1rem;letter-spacing:0.08em;">⚡ QUICK EXAMPLES — Click to Load</h3>
+    <div class="example-grid">
+      <div class="example-card" onclick="loadExample(this)">
+        <div class="ex-tag" style="color:#FF4D4D;">🔥 FIRE TYPE — ANGRY</div>
+        "I've been waiting 4 days and nobody has responded! This is completely unacceptable. I want a refund NOW."
+      </div>
+      <div class="example-card" onclick="loadExample(this)">
+        <div class="ex-tag" style="color:#9B5DE5;">🔮 PSYCHIC TYPE — ANXIOUS</div>
+        "I'm really worried my package won't arrive before my event. Can someone please tell me where it is urgently?"
+      </div>
+      <div class="example-card" onclick="loadExample(this)">
+        <div class="ex-tag" style="color:#4D96FF;">💧 WATER TYPE — SAD</div>
+        "I'm so disappointed with this purchase. I saved up for months for this and it arrived completely broken."
+      </div>
+      <div class="example-card" onclick="loadExample(this)">
+        <div class="ex-tag" style="color:#FFD93D;">⚡ ELECTRIC TYPE — HAPPY</div>
+        "I just received my order and it's absolutely perfect! The quality is amazing. You've made me a customer for life!"
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="/js/main.js" onerror="console.error('Failed to load /js/main.js — check server URL');"></script>
+<script>
+if (typeof renderNav === 'function') renderNav();
+
+let currentMode = 'calm';
+let currentReply = '';
+
+const modeConfig = {
+  calm: { label: 'CALM AGENT MODE', empathy: 75, urgency: 35, prof: 80 },
+  premium: { label: 'PREMIUM SUPPORT MODE', empathy: 88, urgency: 50, prof: 95 },
+  crisis: { label: 'CRISIS DE-ESCALATION MODE', empathy: 95, urgency: 90, prof: 70 }
+};
+
+function selectMode(mode, el) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  const colors = { calm: 'rgba(107,203,119,0.5)', premium: 'rgba(255,203,5,0.5)', crisis: 'rgba(255,77,77,0.5)' };
+  el.style.borderColor = colors[mode];
+}
+
+function onMsgInput() {
+  if (typeof detectEmotion !== 'function') return;
+  const msg = document.getElementById('customer-msg').value;
+  document.getElementById('char-count').textContent = msg.length + ' characters';
+
+  if (msg.trim().length > 10) {
+    const em = detectEmotion(msg);
+    const miniEl = document.getElementById('detected-emotion-mini');
+    miniEl.style.display = 'flex';
+    document.getElementById('det-icon').textContent = em.icon;
+    const badge = document.getElementById('det-badge');
+    badge.textContent = `${em.icon} ${em.type} Type`;
+    badge.className = `type-badge ${em.typeClass}`;
+    document.getElementById('det-label').textContent = `${em.label} — Priority: ${em.priority}`;
+  }
+}
+
+async function generateReply() {
+  if (typeof API === 'undefined' || typeof detectEmotion !== 'function' || typeof EMOTIONS === 'undefined') {
+    alert('App scripts did not load correctly. Please open via http://localhost:3000/ai-replies and hard refresh (Ctrl+F5).');
+    return;
+  }
+
+  const msg = document.getElementById('customer-msg').value.trim();
+  if (!msg) { alert('Please enter a customer message.'); return; }
+
+  const genBar = document.getElementById('gen-bar');
+  const genBarOut = document.getElementById('gen-bar-out');
+  genBar.classList.add('active');
+  genBarOut.classList.add('active');
+
+  document.getElementById('reply-output').innerHTML = '<span class="reply-placeholder" style="animation:blink 0.8s infinite;">🤖 Generating response...</span>';
+  document.getElementById('output-footer').style.display = 'none';
+  document.getElementById('tone-meters').style.display = 'none';
+
+  const em = detectEmotion(msg);
+  const mode = currentMode;
+  const cfg = modeConfig[mode];
+
+  let reply = '';
+  try {
+    const replyRes = await API.reply(msg, mode);
+    reply = replyRes.reply;
+
+    // Update the mini detected-emotion panel using backend (supports Tamil localization)
+    if (replyRes?.emotion && replyRes?.priority) {
+      const miniEl = document.getElementById('detected-emotion-mini');
+      miniEl.style.display = 'flex';
+      document.getElementById('det-icon').textContent = replyRes.emotion.icon;
+      const badge = document.getElementById('det-badge');
+      badge.textContent = replyRes.display?.typeBadge || `${replyRes.emotion.icon} ${replyRes.emotion.type} Type`;
+      badge.className = `type-badge ${replyRes.emotion.typeClass}`;
+
+      const emLabel = replyRes.display?.emotionLabel || replyRes.emotion.label;
+      const prLabel = replyRes.display?.priorityLabel || replyRes.priority.level;
+      document.getElementById('det-label').textContent = replyRes.locale === 'ta'
+        ? `${emLabel} — முன்னுரிமை: ${prLabel}`
+        : `${emLabel} — Priority: ${prLabel}`;
+    }
+  } catch {
+    await new Promise(r => setTimeout(r, 900));
+    reply = generateLocalTemplate(msg, em, mode);
+  }
+
+  currentReply = reply;
+
+  genBar.classList.remove('active');
+  genBarOut.classList.remove('active');
+
+  // Typewriter effect
+  const out = document.getElementById('reply-output');
+  out.textContent = '';
+  let i = 0;
+  const typeInterval = setInterval(() => {
+    out.textContent += reply[i];
+    i++;
+    if (i >= reply.length) clearInterval(typeInterval);
+  }, 18);
+
+  // Show tone meters
+  document.getElementById('tone-meters').style.display = 'block';
+  fillHPBar(document.getElementById('tone-empathy'), cfg.empathy, '#6BCB77');
+  fillHPBar(document.getElementById('tone-urgency'), cfg.urgency, '#FF4D4D');
+  fillHPBar(document.getElementById('tone-prof'), cfg.prof, '#4D96FF');
+  document.getElementById('tv-empathy').textContent = cfg.empathy;
+  document.getElementById('tv-urgency').textContent = cfg.urgency;
+  document.getElementById('tv-prof').textContent = cfg.prof;
+
+  document.getElementById('output-footer').style.display = 'flex';
+  document.getElementById('mode-label-out').textContent = cfg.label;
+}
+
+function generateLocalTemplate(msg, em, mode) {
+  const isTamil = /[\u0B80-\u0BFF]/.test(msg);
+  if (isTamil) {
+    const generic = {
+      calm: 'தொடர்பு கொண்டதற்கு நன்றி! உங்கள் செய்தியை பெற்றோம். இதை உடனே பார்த்து தெளிவான பதிலை வழங்குகிறோம். — EmotionDex ஆதரவு அணி',
+      premium: 'தொடர்பு கொண்டதற்கு நன்றி. உங்கள் வழக்கை முன்னுரிமையாக எடுத்துள்ளோம்; விரைவில் புதுப்பிப்பு வழங்கப்படும். — EmotionDex ஆதரவு அணி',
+      crisis: '🚨 உங்கள் வழக்கை மிக அவசரமாக முன்னுரிமை அளித்து உடனடியாக நடவடிக்கை எடுக்கிறோம். — EmotionDex ஆதரவு அணி'
+    };
+    return generic[mode] || generic.calm;
+  }
+
+  const templates = {
+    calm: {
+      angry: `Dear valued customer, I sincerely apologize for the frustration and inconvenience this situation has caused you. This is not the experience we want for you, and I am personally taking ownership of your case right now. I will ensure this is resolved within the next 2 hours and will keep you updated every step of the way.\n\nWarm regards,\nThe EmotionDex Support Team`,
+      sad: `I'm truly sorry to hear about your experience, and I can completely understand your disappointment. Your feelings are completely valid, and I want you to know that we take this very seriously. Please allow me to personally investigate and make this right for you — you deserve much better.\n\nWarm regards,\nThe EmotionDex Support Team`,
+      anxious: `I completely understand your concern, and I want to assure you that I'm on this right now. Your matter is being prioritized and you can expect a full status update within the next 15 minutes. Please don't worry — our team is actively working to resolve this for you.\n\nWarm regards,\nThe EmotionDex Support Team`,
+      happy: `Thank you so much for your wonderful feedback — it truly made our day! We're absolutely thrilled you're happy with your experience. As a token of our appreciation, we'd love to offer you a special loyalty reward. Please reply to this message to claim it!\n\nWarm regards,\nThe EmotionDex Support Team`,
+      calm: `Thank you for reaching out to us today! I'll be happy to assist you with your query. Let me look into this right away and provide you with a clear and complete answer.\n\nWarm regards,\nThe EmotionDex Support Team`,
+      love: `Wow, your loyalty and kind words mean everything to us! Customers like you are the reason we love what we do. I'd love to personally introduce you to our exclusive Ambassador Program — please stay tuned for a special surprise!\n\nWarm regards,\nThe EmotionDex Support Team`
+    },
+    premium: {
+      angry: `I want to personally and sincerely apologize for this unacceptable experience. As a valued member of our community, you deserve nothing short of excellence — and we have clearly fallen short. I am escalating your case to our Priority Resolution Team this very moment, and our Head of Customer Experience will personally reach out within the hour.\n\nWith deepest apologies,\nThe EmotionDex Premium Support Team`,
+      sad: `We are deeply sorry this experience has left you feeling this way — it is entirely understandable, and we take full responsibility. As a valued customer, you deserve extraordinary care, and I am personally committed to making this right. Our white-glove support team is preparing a comprehensive resolution and gesture of goodwill for you right now.\n\nWith sincere apologies,\nThe EmotionDex Premium Support Team`,
+      anxious: `I want to personally reassure you that your case is now our absolute top priority. Our dedicated resolution team has been activated and you will receive a detailed status update within the next 10 minutes — guaranteed. I will personally monitor this until it's fully resolved to your satisfaction.\n\nWith commitment,\nThe EmotionDex Premium Support Team`,
+      happy: `Your gracious words are an absolute honor and bring genuine joy to our entire team! Your loyalty is the foundation of everything we do. As our heartfelt appreciation, I'd like to personally extend an invitation to our Elite Customer Advisory Board — where you'll receive exclusive benefits and early access to everything we create.\n\nWith gratitude,\nThe EmotionDex Premium Support Team`,
+      calm: `Thank you for connecting with us. I'm delighted to assist and will ensure your query is handled with the highest level of care and precision. Our premium team is reviewing your request now.\n\nWarm regards,\nThe EmotionDex Premium Support Team`,
+      love: `Your extraordinary loyalty is the greatest reward we could ever receive. You represent the very best of our community, and we would be honored to make you one of our founding Brand Ambassadors with full VIP benefits.\n\nWith immense gratitude,\nThe EmotionDex Premium Support Team`
+    },
+    crisis: {
+      angry: `🚨 I hear you, and I am taking immediate action right now. What happened to you is completely unacceptable, and I am personally escalating this as a CRITICAL case. A senior resolution agent is being assigned to you this moment — you will be contacted within 15 minutes with a concrete solution. I am so sorry, and we will make this right.\n\nUrgently yours,\nThe EmotionDex Crisis Team`,
+      sad: `I am so, so sorry this happened to you. Your pain is real and your disappointment is completely justified. I am dropping everything to personally handle your case right now. Please know that you are not alone in this — our team is completely dedicated to making this right and restoring your trust.\n\nWith deep empathy,\nThe EmotionDex Crisis Team`,
+      anxious: `URGENT: I'm treating your case as our #1 priority RIGHT NOW. I understand the time pressure and I want you to have a definitive answer immediately. Our tracking team confirms your case is live and being actively managed — here's what's happening and the exact next steps...\n\nActing immediately,\nThe EmotionDex Crisis Team`,
+      happy: `This is the most wonderful message we've received today — thank you from the bottom of our hearts! We want to celebrate YOU right now. Please hold on while I personally arrange something special for you!\n\nWith joy,\nThe EmotionDex Crisis Team`,
+      calm: `Thank you for reaching out. I'm prioritizing your request and will have an answer for you immediately.\n\nThe EmotionDex Crisis Team`,
+      love: `Your incredible loyalty literally powers our mission. We are making you our Crisis-to-Champion success story! Expect something extraordinary from us very soon.\n\nWith love,\nThe EmotionDex Crisis Team`
+    }
+  };
+
+  const modeT = templates[mode] || templates.calm;
+  const emotionKey = Object.keys(EMOTIONS).find(k => EMOTIONS[k].label === em.label) || 'calm';
+  return modeT[emotionKey] || modeT.calm;
+}
+
+function copyOutput(e) {
+  navigator.clipboard.writeText(currentReply).then(() => {
+    const btn = e && e.target ? e.target : null;
+    if (!btn) return;
+    const prev = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = prev || '📋 Copy'; }, 2000);
+  });
+}
+
+function loadExample(el) {
+  const text = el.textContent.replace(/^[^\s"]+\s*/, '').replace(/"/g, '').trim();
+  document.getElementById('customer-msg').value = text;
+  onMsgInput();
+  generateReply();
+}
+</script>
+</body>
+</html>

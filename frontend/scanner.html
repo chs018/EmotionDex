@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emotion Scanner — EmotionDex</title>
+<meta name="description" content="Scan customer messages for emotion types using AI-powered sentiment analysis.">
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+.scanner-page { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+.scanner-layout {
+  display: grid; grid-template-columns: 1fr 420px; gap: 1.5rem; align-items: start;
+}
+
+@media (max-width: 900px) { .scanner-layout { grid-template-columns: 1fr; } }
+
+/* Left: Chat panel */
+.chat-panel {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,203,5,0.15);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.chat-header {
+  background: linear-gradient(135deg, rgba(42,117,187,0.3), rgba(27,31,59,0.8));
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255,203,5,0.1);
+  display: flex; align-items: center; gap: 1rem;
+}
+
+.chat-header h2 { font-family: 'Orbitron', monospace; font-size: 1rem; color: var(--electric-yellow); }
+
+.chat-messages {
+  height: 380px; overflow-y: auto;
+  padding: 1.5rem; display: flex; flex-direction: column;
+}
+
+.chat-input-row {
+  border-top: 1px solid rgba(255,203,5,0.1);
+  padding: 1rem 1.5rem;
+  display: flex; gap: 0.75rem; align-items: flex-end;
+}
+
+.chat-input {
+  flex: 1;
+  background: rgba(27,31,59,0.8);
+  border: 1px solid rgba(255,203,5,0.2);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  resize: none;
+  min-height: 50px;
+  max-height: 120px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.chat-input:focus { border-color: var(--electric-yellow); }
+.chat-input::placeholder { color: rgba(248,249,250,0.3); }
+
+.send-btn {
+  background: linear-gradient(135deg, var(--electric-yellow), #FFA500);
+  border: none;
+  border-radius: 12px;
+  width: 50px; height: 50px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.send-btn:hover { transform: scale(1.1); box-shadow: var(--glow-yellow); }
+
+/* Quick samples */
+.sample-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1.5rem; border-top: 1px solid rgba(255,203,5,0.05); }
+
+.sample-chip {
+  background: rgba(42,117,187,0.15);
+  border: 1px solid rgba(42,117,187,0.3);
+  border-radius: 20px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  color: rgba(248,249,250,0.7);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.sample-chip:hover { background: rgba(255,203,5,0.1); border-color: var(--electric-yellow); color: var(--electric-yellow); }
+
+/* Right: Scan results */
+.scan-panel {
+  display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 80px;
+}
+
+.scan-card {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,203,5,0.15);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.scan-card-header {
+  background: rgba(27,31,59,0.5);
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid rgba(255,203,5,0.1);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  color: rgba(255,203,5,0.7);
+  letter-spacing: 0.1em;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+
+.scan-card-body { padding: 1.25rem; }
+
+/* Emotion result card */
+.emotion-result-display {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.emotion-big-icon { font-size: 4rem; margin-bottom: 0.5rem; display: block; }
+
+.emotion-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin-bottom: 0.5rem;
+}
+
+/* Confidence meter */
+.confidence-bar-wrap { margin: 1rem 0; }
+.confidence-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.4rem; }
+.confidence-label span:first-child { color: rgba(248,249,250,0.6); font-family: 'Rajdhani', sans-serif; }
+.confidence-label span:last-child { color: var(--electric-yellow); font-family: 'Orbitron', monospace; font-size: 0.75rem; }
+
+/* Priority indicator */
+.priority-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+.priority-critical { background: rgba(255,59,48,0.2); color: var(--poke-red); border: 1px solid var(--poke-red); animation: pulse-glow 1.5s infinite; }
+.priority-high { background: rgba(255,77,77,0.15); color: #FF8C00; border: 1px solid #FF8C00; }
+.priority-medium { background: rgba(255,203,5,0.15); color: var(--electric-yellow); border: 1px solid var(--electric-yellow); }
+.priority-low { background: rgba(107,203,119,0.15); color: var(--calm); border: 1px solid var(--calm); }
+.priority-positive { background: rgba(255,102,196,0.15); color: var(--love); border: 1px solid var(--love); }
+
+/* Scanning animation overlay */
+.scanning-overlay {
+  display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem; padding: 2rem;
+  text-align: center;
+}
+
+.scan-ring {
+  width: 80px; height: 80px;
+  border: 3px solid rgba(255,203,5,0.2);
+  border-top-color: var(--electric-yellow);
+  border-radius: 50%;
+  animation: spin-slow 1s linear infinite;
+}
+
+.scanning-overlay.active { display: flex; }
+
+/* API key section */
+.api-key-section {
+  background: rgba(27,31,59,0.8);
+  border: 1px solid rgba(155,93,229,0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.api-input {
+  width: 100%;
+  background: rgba(37,42,74,0.8);
+  border: 1px solid rgba(255,203,5,0.2);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  outline: none;
+}
+
+.api-input:focus { border-color: var(--electric-yellow); }
+
+/* Action buttons row */
+.action-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+.action-btn {
+  flex: 1; padding: 0.6rem; border-radius: 10px;
+  font-family: 'Rajdhani', sans-serif; font-weight: 700;
+  font-size: 0.85rem; cursor: pointer; border: none;
+  transition: all 0.3s; text-align: center;
+}
+
+.action-btn-primary { background: rgba(255,203,5,0.15); color: var(--electric-yellow); border: 1px solid var(--electric-yellow); }
+.action-btn-primary:hover { background: rgba(255,203,5,0.25); }
+.action-btn-danger { background: rgba(255,59,48,0.15); color: var(--poke-red); border: 1px solid var(--poke-red); }
+.action-btn-danger:hover { background: rgba(255,59,48,0.25); }
+
+/* Stat rows in scan panel */
+.info-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.info-row:last-child { border-bottom: none; }
+.info-row .lbl { font-size: 0.8rem; color: rgba(248,249,250,0.5); font-family: 'Rajdhani', sans-serif; }
+.info-row .val { font-size: 0.85rem; color: var(--white); font-weight: 600; }
+/* Language selector */
+.lang-selector-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.6rem 1.5rem; border-bottom: 1px solid rgba(255,203,5,0.06);
+  background: rgba(27,31,59,0.3);
+}
+.lang-label { font-family:'Rajdhani',sans-serif; font-size:0.75rem; color:rgba(248,249,250,0.45); text-transform:uppercase; letter-spacing:0.08em; }
+.lang-btn {
+  background: rgba(42,117,187,0.12); border: 1px solid rgba(42,117,187,0.25);
+  border-radius: 18px; padding: 0.25rem 0.75rem;
+  font-family:'Rajdhani',sans-serif; font-size:0.78rem; color:rgba(248,249,250,0.6);
+  cursor:pointer; transition:all 0.25s;
+}
+.lang-btn:hover, .lang-btn.active {
+  background:rgba(255,203,5,0.12); border-color:var(--electric-yellow);
+  color:var(--electric-yellow);
+}
+/* Transformer status badge */
+.tf-badge {
+  display:inline-flex; align-items:center; gap:0.35rem;
+  font-family:'Rajdhani',sans-serif; font-size:0.72rem;
+  padding:0.2rem 0.6rem; border-radius:12px; margin-left:auto;
+}
+.tf-badge.loading { background:rgba(155,93,229,0.12); color:rgba(155,93,229,0.7); border:1px solid rgba(155,93,229,0.25); }
+.tf-badge.ready   { background:rgba(107,203,119,0.12); color:var(--calm); border:1px solid rgba(107,203,119,0.3); }
+.tf-badge.error   { background:rgba(255,59,48,0.1);    color:var(--poke-red); border:1px solid rgba(255,59,48,0.25); }
+.tf-dot { width:6px;height:6px;border-radius:50%;background:currentColor; }
+.tf-dot.pulsing { animation:pulse-glow 1.2s ease-in-out infinite; }
+/* Detected lang chip */
+.lang-chip {
+  display:inline-flex;align-items:center;gap:0.3rem;
+  font-family:'Rajdhani',sans-serif;font-size:0.72rem;
+  padding:0.15rem 0.5rem;border-radius:10px;
+  background:rgba(42,117,187,0.15);border:1px solid rgba(42,117,187,0.3);
+  color:rgba(248,249,250,0.6);
+}
+</style>
+</head>
+<body>
+<canvas id="particles-canvas"></canvas>
+<nav class="navbar" id="main-nav"></nav>
+
+<div class="page-content">
+  <div class="scanner-page">
+    <div style="margin-bottom:2rem;">
+      <h1 class="section-title">⚡ Emotion Scanner</h1>
+      <p class="section-subtitle">Type a customer message to detect emotion, priority, and get AI-powered response suggestions.</p>
+    </div>
+
+
+    <div class="scanner-layout">
+      <!-- Left: Chat -->
+      <div>
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div style="width:10px;height:10px;background:var(--calm);border-radius:50%;box-shadow:0 0 6px var(--calm);"></div>
+            <h2>Customer Conversation Simulator</h2>
+            <button class="pokeball-toggle" onclick="clearChat()" style="width:30px;height:30px;margin-left:auto;" title="Clear chat"></button>
+          </div>
+
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-bubble agent" style="max-width:100%;text-align:center;background:rgba(255,203,5,0.05);">
+              <span style="font-size:1.5rem;">🤖</span>
+              <p style="margin-top:0.25rem;color:rgba(248,249,250,0.5);font-size:0.85rem;">Hello! How can I assist you today? Type a message to begin emotion scanning.</p>
+            </div>
+          </div>
+
+          <!-- Language selector -->
+          <div class="lang-selector-row">
+            <span class="lang-label">🌐 Lang:</span>
+            <button class="lang-btn active" onclick="setLang('auto')" id="lang-auto">🔍 Auto</button>
+            <button class="lang-btn" onclick="setLang('en')" id="lang-en">🇬🇧 English</button>
+            <button class="lang-btn" onclick="setLang('ta')" id="lang-ta">🇮🇳 Tamil</button>
+            <button class="lang-btn" onclick="setLang('hi')" id="lang-hi">🇮🇳 Hindi</button>
+            <div class="tf-badge loading" id="tf-status-badge">
+              <div class="tf-dot pulsing"></div>
+              <span id="tf-status-text">Transformer loading…</span>
+            </div>
+          </div>
+
+          <div class="sample-chips">
+            <span style="font-size:0.75rem;color:rgba(248,249,250,0.3);font-family:'Rajdhani',sans-serif;align-self:center;">TRY:</span>
+            <div class="sample-chip" onclick="useSample(this)">I've been waiting 4 days!</div>
+            <div class="sample-chip" onclick="useSample(this)">Your service is amazing!</div>
+            <div class="sample-chip" onclick="useSample(this)">I'm worried my order is lost</div>
+            <div class="sample-chip" onclick="useSample(this)">This is absolutely terrible</div>
+            <div class="sample-chip" onclick="useSample(this)">How do I track my package?</div>
+            <div class="sample-chip" onclick="useSample(this)">I love your product so much!</div>
+            <div class="sample-chip" onclick="useSample(this)">மிகவும் கோபமாக உள்ளது!</div>
+            <div class="sample-chip" onclick="useSample(this)">மகிழ்ச்சியான அனுபவம்!</div>
+            <div class="sample-chip" onclick="useSample(this)">मैं बहुत गुस्से में हूं!</div>
+            <div class="sample-chip" onclick="useSample(this)">बहुत अच्छी सेवा, धन्यवाद!</div>
+            <div class="sample-chip" onclick="useSample(this)">मुझे तुरंत मदद चाहिए!</div>
+          </div>
+
+          <div class="chat-input-row">
+            <textarea id="customer-input" class="chat-input" placeholder="Type in English, தமிழ், or हिंदी…" rows="1" onkeydown="handleKey(event)"></textarea>
+            <button class="send-btn" onclick="scanMessage()" id="send-btn">⚡</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Scan Results -->
+      <div class="scan-panel">
+        <!-- Emotion Result -->
+        <div class="scan-card">
+          <div class="scan-card-header">
+            <span>📡</span> EMOTION SCAN RESULT
+          </div>
+          <div class="scan-card-body" id="scan-result-body">
+            <!-- Scanning overlay -->
+            <div class="scanning-overlay" id="scanning-overlay">
+              <div class="scan-ring"></div>
+              <div style="font-family:'Orbitron',monospace;font-size:0.85rem;color:var(--electric-yellow);animation:blink 1s infinite;">SCANNING...</div>
+              <div style="font-size:0.75rem;color:rgba(248,249,250,0.4);">Analyzing emotion type...</div>
+            </div>
+            <!-- Default idle -->
+            <div id="idle-state" class="emotion-result-display">
+              <span class="emotion-big-icon">📡</span>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:1rem;color:rgba(248,249,250,0.4);">Awaiting conversation input...</div>
+              <div style="font-size:0.8rem;color:rgba(248,249,250,0.3);margin-top:0.5rem;">Send a message to activate scan</div>
+            </div>
+            <!-- Result state (hidden initially) -->
+            <div id="result-state" style="display:none;">
+              <div class="emotion-result-display">
+                <span class="emotion-big-icon" id="res-icon">🔥</span>
+                <div class="type-badge" id="res-type-badge" style="margin:0 auto 0.75rem;">Fire Type</div>
+                <div class="emotion-name" id="res-emotion-name">Angry</div>
+
+                <div class="confidence-bar-wrap">
+                  <div class="confidence-label">
+                    <span>Confidence Level</span>
+                    <span id="res-confidence">0%</span>
+                  </div>
+                  <div class="hp-bar-container">
+                    <div class="hp-bar" id="res-conf-bar" style="width:0%"></div>
+                  </div>
+                </div>
+
+                <div class="priority-badge" id="res-priority-badge">⚠ CRITICAL</div>
+              </div>
+
+              <div style="border-top:1px solid rgba(255,203,5,0.1);padding-top:1rem;margin-top:0.5rem;">
+                <div class="info-row">
+                  <span class="lbl">Detected Language</span>
+                  <span class="val" id="res-lang" style="font-size:0.78rem;">—</span>
+                </div>
+                <div class="info-row">
+                  <span class="lbl">Urgency Level</span>
+                  <span class="val" id="res-urgency">—</span>
+                </div>
+                <div class="info-row">
+                  <span class="lbl">Priority Score</span>
+                  <span class="val" id="res-score" style="color:var(--electric-yellow);font-family:'Orbitron',monospace;">—</span>
+                </div>
+                <div class="info-row">
+                  <span class="lbl">Suggested Action</span>
+                  <span class="val" id="res-action" style="font-size:0.78rem;text-align:right;max-width:200px;">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Suggested Reply -->
+        <div class="scan-card">
+          <div class="scan-card-header">
+            <span>🤖</span> AI SUGGESTED REPLY
+          </div>
+          <div class="scan-card-body">
+            <div id="ai-reply-area" style="min-height:80px;color:rgba(248,249,250,0.4);font-size:0.85rem;font-style:italic;">
+              Scan a message to generate an AI reply...
+            </div>
+            <div class="action-row" id="reply-actions" style="display:none;">
+              <button class="action-btn action-btn-primary" onclick="copyReply()">📋 Copy</button>
+              <button class="action-btn action-btn-primary" onclick="regenerateReply()">🔄 Regenerate</button>
+              <button class="action-btn action-btn-danger" onclick="escalate()">🚨 Escalate</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emotion evolution warning -->
+        <div id="evolution-warning" style="display:none;" class="alert-box">
+          <span style="font-size:1.5rem;">⚠️</span>
+          <div>
+            <div style="font-family:'Orbitron',monospace;font-size:0.75rem;margin-bottom:0.25rem;">EMOTION EVOLUTION DETECTED</div>
+            <div style="font-size:0.8rem;" id="evolution-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/main.js" onerror="console.error('Failed to load /js/main.js — check server URL');"></script>
+<script>
+if (typeof renderNav === 'function') renderNav();
+if (typeof initGSAP === 'function') initGSAP();
+
+let lastEmotionKey = null;
+let lastEmotionLabel = null;
+let lastMessage = '';
+let lastAIReply = '';
+let forcedLang = 'auto'; // 'auto' | 'en' | 'ta' | 'hi'
+
+// ── Language selector ─────────────────────────────────────────────────
+function setLang(lang) {
+  forcedLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('lang-' + lang);
+  if (btn) btn.classList.add('active');
+  const hints = { auto: 'Type in English, தமிழ், or हिंदी…', en: 'Type your English message…', ta: 'தமிழில் செய்தி எழுதவும்…', hi: 'हिंदी में संदेश लिखें…' };
+  document.getElementById('customer-input').placeholder = hints[lang] || hints.auto;
+}
+
+// ── Transformer status polling ────────────────────────────────────────
+async function pollTransformerStatus() {
+  try {
+    const base = await resolveApiBase();
+    const res = await fetch(`${base}/transformer-status`);
+    if (!res.ok) return;
+    const { data } = await res.json();
+    const badge = document.getElementById('tf-status-badge');
+    const text  = document.getElementById('tf-status-text');
+    const dot   = badge?.querySelector('.tf-dot');
+    if (!badge) return;
+    if (data.ready) {
+      badge.className = 'tf-badge ready';
+      text.textContent = '⚡ Transformer Ready';
+      if (dot) dot.classList.remove('pulsing');
+    } else if (data.error) {
+      badge.className = 'tf-badge error';
+      text.textContent = '❌ Transformer Error';
+      if (dot) dot.classList.remove('pulsing');
+    } else {
+      badge.className = 'tf-badge loading';
+      text.textContent = 'Transformer loading…';
+      if (dot) dot.classList.add('pulsing');
+      setTimeout(pollTransformerStatus, 4000);
+    }
+  } catch { setTimeout(pollTransformerStatus, 6000); }
+}
+// Kick off after 1s
+setTimeout(pollTransformerStatus, 1000);
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); scanMessage(); }
+}
+
+function useSample(el) {
+  document.getElementById('customer-input').value = el.textContent;
+  scanMessage();
+}
+
+function addChatBubble(text, type) {
+  const container = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${type}`;
+  bubble.style.animation = 'fadeInUp 0.3s ease';
+  bubble.innerHTML = `<p style="font-size:0.9rem;line-height:1.5;">${text}</p>`;
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addThinkingBubble() {
+  const container = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble agent';
+  bubble.id = 'thinking-bubble';
+  bubble.innerHTML = '<span style="letter-spacing:4px;animation:blink 1s infinite;">●●●</span>';
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeThinkingBubble() {
+  const b = document.getElementById('thinking-bubble');
+  if (b) b.remove();
+}
+
+async function scanMessage() {
+  if (typeof API === 'undefined' || typeof detectEmotion !== 'function' || typeof EMOTIONS === 'undefined') {
+    const msg = 'App scripts did not load correctly. Please open via http://localhost:3000/scanner (avoid a trailing slash) and hard refresh (Ctrl+F5).';
+    if (typeof showRocketAlert === 'function') showRocketAlert(msg);
+    else alert(msg);
+    return;
+  }
+
+  const input = document.getElementById('customer-input');
+  const text = input.value.trim();
+  if (!text) {
+    input.focus();
+    const prev = input.style.borderColor;
+    input.style.borderColor = 'var(--electric-yellow)';
+    setTimeout(() => { input.style.borderColor = prev || 'rgba(255,203,5,0.2)'; }, 650);
+    if (typeof showRocketAlert === 'function') {
+      showRocketAlert('Type a customer message first, then press ⚡ to scan.');
+    }
+    return;
+  }
+
+  lastMessage = text;
+  input.value = '';
+
+  addChatBubble(text, 'user');
+
+  document.getElementById('idle-state').style.display = 'none';
+  document.getElementById('result-state').style.display = 'none';
+  document.getElementById('scanning-overlay').classList.add('active');
+  document.getElementById('evolution-warning').style.display = 'none';
+  document.getElementById('ai-reply-area').textContent = 'Scanning emotion...';
+  document.getElementById('reply-actions').style.display = 'none';
+
+  addThinkingBubble();
+
+  // ── Try backend API first ──────────────────────────────────
+  let emotion, confidence, backendResult = null;
+  try {
+    const scanRes = await API.scan(text, true);
+    backendResult = scanRes.result;
+    // Map backend result to local emotion shape (keep keys for logic; use display for UI)
+    emotion = {
+      key:           backendResult.emotion.key,
+      label:         backendResult.emotion.label,
+      type:          backendResult.emotion.type,
+      typeClass:     backendResult.emotion.typeClass,
+      icon:          backendResult.emotion.icon,
+      color:         backendResult.emotion.color,
+      priority:      backendResult.priority.level,
+      priorityScore: backendResult.priority.score,
+      urgency:       backendResult.priority.urgency,
+      action:        backendResult.priority.action,
+      display:       backendResult.display || null,
+      locale:        backendResult.locale || 'en'
+    };
+    confidence = backendResult.confidence;
+  } catch {
+    // ── Fallback: client-side NLP ──────────────────────────
+    await new Promise(r => setTimeout(r, 1200));
+    emotion    = detectEmotion(text);
+    confidence = getConfidence(text, emotion);
+  }
+
+  const currentKey = emotion.key || (Object.keys(EMOTIONS).find(k => EMOTIONS[k].label === emotion.label) || 'calm');
+  const currentLabel = (emotion.locale && emotion.locale !== 'en' && emotion.display?.emotionLabel) ? emotion.display.emotionLabel : emotion.label;
+
+  // Update detected language
+  const langMap = { en: '🇬🇧 English', ta: '🇮🇳 Tamil (தமிழ்)', hi: '🇮🇳 Hindi (हिंदी)' };
+  const resLangEl = document.getElementById('res-lang');
+  if (resLangEl) resLangEl.textContent = langMap[emotion.locale] || langMap.en;
+  // Check evolution
+  if (lastEmotionKey && lastEmotionKey !== currentKey) {
+    const evolveEl = document.getElementById('evolution-warning');
+    const evolveText = document.getElementById('evolution-text');
+    evolveEl.style.display = 'flex';
+    if (typeof gsap !== 'undefined') gsap.from(evolveEl, { x: -20, opacity: 0, duration: 0.5 });
+
+    if (emotion.locale === 'ta') {
+      evolveText.textContent = `${lastEmotionLabel} → ${currentLabel}: உணர்ச்சி மாற்றம் கண்டறியப்பட்டது! உடனடி நடவடிக்கை தேவை.`;
+    } else {
+      evolveText.textContent = `${lastEmotionLabel} → ${currentLabel}: Emotion escalation detected! Immediate action required.`;
+    }
+  }
+
+  if (currentKey === 'angry' || emotion.priorityScore >= 90) {
+    showRocketAlert(emotion.locale === 'ta'
+      ? '🚨 மிக அவசரம்: கோபம் கண்டறியப்பட்டது! உடனடி நடவடிக்கை தேவை!'
+      : '🚨 CRITICAL: Angry customer detected! Team Rocket-level threat!');
+  }
+
+  lastEmotionKey = currentKey;
+  lastEmotionLabel = currentLabel;
+
+  document.getElementById('scanning-overlay').classList.remove('active');
+  document.getElementById('result-state').style.display = 'block';
+  animateScanResult(emotion.color);
+
+  document.getElementById('res-icon').textContent = emotion.icon;
+  const typeBadge = document.getElementById('res-type-badge');
+  typeBadge.textContent = emotion.display?.typeBadge || `${emotion.icon} ${emotion.type} Type`;
+  typeBadge.className = `type-badge ${emotion.typeClass}`;
+
+  document.getElementById('res-emotion-name').textContent = emotion.display?.emotionLabel || emotion.label;
+  document.getElementById('res-emotion-name').style.color = emotion.color;
+
+  const confBar = document.getElementById('res-conf-bar');
+  document.getElementById('res-confidence').textContent = confidence + '%';
+  fillHPBar(confBar, confidence, emotion.color);
+
+  const priorityBadge = document.getElementById('res-priority-badge');
+  const prLabel = emotion.display?.priorityLabel || emotion.priority;
+  priorityBadge.textContent = `${emotion.priority === 'CRITICAL' ? '🚨' : emotion.priority === 'HIGH' ? '⚠' : '●'} ${prLabel}`;
+  priorityBadge.className = `priority-badge priority-${emotion.priority.toLowerCase()}`;
+
+  document.getElementById('res-urgency').textContent = emotion.display?.urgency || emotion.urgency;
+  document.getElementById('res-score').textContent = emotion.priorityScore + '/100';
+  document.getElementById('res-action').textContent = emotion.display?.action || emotion.action;
+
+  // ── AI Reply: try backend first ────────────────────────────────────────
+  let reply = '';
+  try {
+    const replyRes = await API.reply(text, 'calm');
+    reply = replyRes.reply;
+  } catch {
+    // Fallback: local template
+    reply = generateLocalReply(text, emotion);
+  }
+
+  lastAIReply = reply;
+  removeThinkingBubble();
+  addChatBubble(`🤖 ${reply}`, 'agent');
+
+  document.getElementById('ai-reply-area').innerHTML = `
+    <div style="background:rgba(255,203,5,0.05);border-left:3px solid ${emotion.color};padding:0.75rem;border-radius:0 8px 8px 0;font-style:normal;color:var(--white);line-height:1.6;font-size:0.88rem;">${reply}</div>
+  `;
+  document.getElementById('reply-actions').style.display = 'flex';
+}
+
+function generateLocalReply(text, emotion) {
+  const isTamil = /[\u0B80-\u0BFF]/.test(text);
+
+  const templatesEn = {
+    angry: `I sincerely apologize for the frustration this has caused you — you deserve so much better. I'm escalating your case to our senior team right now and we'll resolve this within 2 hours. Thank you for your patience, and I promise we'll make this right.`,
+    sad: `I'm truly sorry to hear you're feeling disappointed, and I completely understand how you feel. Let me look into this personally and find the best solution for you right away. We value you as a customer and want to turn this experience around.`,
+    happy: `Thank you so much for your kind words — it truly means the world to our team! We're thrilled you're enjoying the experience. Is there anything else we can do to make your experience even better?`,
+    calm: `Thank you for reaching out! I'd be happy to help you with that. Let me pull up your details and provide a clear answer right away.`,
+    anxious: `I completely understand your concern, and I want to assure you we're on top of this. Your case is being prioritized and you can expect a resolution update within the next 30 minutes. Please don't worry — you're in good hands.`,
+    love: `Wow, thank you so much! Your loyalty and kind words inspire our entire team. As a token of our appreciation, I'd love to offer you something special — let me connect you with our loyalty team!`
+  };
+
+  const templatesTa = {
+    angry: `உங்களுக்கு ஏற்பட்ட தொந்தரவு/மனவருத்தத்திற்கு மன்னிப்பு கோருகிறேன். இதை உடனே உயர்நிலைக்கு மாற்றி விரைவில் தீர்வு வழங்க முயற்சிக்கிறோம்.`,
+    sad: `நீங்கள் இப்படி உணர்வது புரிகிறது. இதை நான் உடனே பார்த்து உங்களுக்கு சிறந்த தீர்வை வழங்க முயற்சிப்பேன்.`,
+    happy: `உங்கள் நல்ல வார்த்தைகளுக்கு நன்றி! இன்னும் எதாவது உதவி வேண்டுமா?`,
+    calm: `தொடர்பு கொண்டதற்கு நன்றி! உங்கள் கேள்விக்கு தெளிவான பதிலை உடனே வழங்குகிறேன்.`,
+    anxious: `உங்கள் கவலை புரிகிறது. இந்த விஷயத்தை முன்னுரிமையாக எடுத்துள்ளோம்; விரைவில் புதுப்பிப்பு வழங்குகிறோம்.`,
+    love: `வாவ்! உங்கள் நம்பிக்கைக்கு நன்றி. உங்களுக்கு ஒரு சிறப்பு நன்மையை வழங்க விரும்புகிறோம்.`
+  };
+
+  const templates = isTamil ? templatesTa : templatesEn;
+  const key = Object.keys(EMOTIONS).find(k => EMOTIONS[k].label === emotion.label) || 'calm';
+  return templates[key];
+}
+
+function copyReply() {
+  navigator.clipboard.writeText(lastAIReply).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+  });
+}
+
+function regenerateReply() {
+  const input = document.getElementById('customer-input');
+  input.value = lastMessage;
+  scanMessage();
+}
+
+function escalate() {
+  const isTamil = /[\u0B80-\u0BFF]/.test(lastMessage);
+  showRocketAlert(isTamil
+    ? '🚨 மனித உதவியாளரிடம் உயர்த்தப்பட்டது! முன்னுரிமை வரிசை புதுப்பிக்கப்பட்டது.'
+    : '🚨 Ticket escalated to human agent! Priority queue updated.');
+  addChatBubble(isTamil
+    ? '🚨 இந்த உரையாடல் ஒரு மூத்த மனித உதவியாளரிடம் உயர்த்தப்பட்டுள்ளது. சிறிது நேரத்தில் ஒருவர் உதவி செய்வார்.'
+    : '🚨 This conversation has been escalated to a senior human agent. Someone will be with you shortly.', 'agent');
+}
+
+function clearChat() {
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = `
+    <div class="chat-bubble agent" style="max-width:100%;text-align:center;background:rgba(255,203,5,0.05);">
+      <span style="font-size:1.5rem;">🤖</span>
+      <p style="margin-top:0.25rem;color:rgba(248,249,250,0.5);font-size:0.85rem;">Chat cleared. Type a new message to begin scanning. (தமிழ் ஆதரவு உள்ளது)</p>
+    </div>`;
+  document.getElementById('result-state').style.display = 'none';
+  document.getElementById('idle-state').style.display = 'block';
+  document.getElementById('ai-reply-area').textContent = 'Scan a message to generate an AI reply...';
+  document.getElementById('reply-actions').style.display = 'none';
+  document.getElementById('evolution-warning').style.display = 'none';
+  lastEmotionKey = null;
+  lastEmotionLabel = null;
+}
+</script>
+</body>
+</html>

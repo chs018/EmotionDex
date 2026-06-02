@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>(Removed) — EmotionDex</title>
+<meta name="description" content="(Removed) Analytics Arena page. Redirecting to Emotion Scanner.">
+<meta http-equiv="refresh" content="0; url=scanner.html">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+.arena-page { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+/* Level card */
+.level-card {
+  background: linear-gradient(135deg, rgba(42,117,187,0.3), rgba(155,93,229,0.2));
+  border: 2px solid rgba(255,203,5,0.3);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: center;
+}
+
+@media (max-width: 700px) { .level-card { grid-template-columns: 1fr; } }
+
+.trainer-name { font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 900; color: var(--electric-yellow); margin-bottom: 0.25rem; }
+.trainer-title { font-family: 'Rajdhani', sans-serif; font-size: 1rem; color: rgba(248,249,250,0.6); margin-bottom: 1rem; }
+
+.xp-bar-wrapper { background: rgba(27,31,59,0.6); border-radius: 12px; height: 16px; overflow: hidden; margin-bottom: 0.5rem; }
+.xp-bar { height: 100%; background: linear-gradient(90deg, var(--electric-yellow), #FFA500); border-radius: 12px; position: relative; }
+.xp-bar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shimmer 2s infinite; }
+
+.xp-label { display: flex; justify-content: space-between; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; color: rgba(248,249,250,0.5); }
+
+.level-badge {
+  width: 120px; height: 120px;
+  background: linear-gradient(135deg, var(--electric-yellow), #FFA500);
+  border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 0 40px rgba(255,203,5,0.4);
+  animation: pulse-glow 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.level-num { font-family: 'Orbitron', monospace; font-size: 2.5rem; font-weight: 900; color: var(--dark-navy); line-height: 1; }
+.level-text { font-family: 'Rajdhani', sans-serif; font-size: 0.7rem; font-weight: 700; color: var(--dark-navy); letter-spacing: 0.1em; }
+
+/* Stats grid */
+.arena-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+@media (max-width: 1000px) { .arena-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .arena-stats { grid-template-columns: 1fr; } }
+
+.stat-card {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.stat-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+.stat-num { font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 900; }
+.stat-lbl { font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; color: rgba(248,249,250,0.5); margin-top: 0.25rem; }
+
+/* Badges */
+.badges-section { margin-bottom: 2rem; }
+.badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+
+.badge-card {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.badge-card.unlocked { border-color: rgba(255,203,5,0.3); }
+.badge-card.unlocked:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.3), var(--glow-yellow); }
+
+.badge-card.locked { filter: brightness(0.4) grayscale(0.8); }
+
+.badge-icon { font-size: 3rem; margin-bottom: 0.75rem; display: block; }
+.badge-name { font-family: 'Orbitron', monospace; font-size: 0.72rem; font-weight: 700; color: var(--electric-yellow); margin-bottom: 0.25rem; }
+.badge-desc { font-size: 0.72rem; color: rgba(248,249,250,0.5); }
+
+.badge-new {
+  position: absolute; top: 0.5rem; right: 0.5rem;
+  background: var(--poke-red); color: white;
+  font-size: 0.6rem; font-family: 'Orbitron', monospace;
+  padding: 0.15rem 0.4rem; border-radius: 8px;
+}
+
+/* Arena layout */
+.arena-main { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; }
+@media (max-width: 900px) { .arena-main { grid-template-columns: 1fr; } }
+
+.chart-wrap {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,203,5,0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.chart-wrap h3 { font-family: 'Orbitron', monospace; font-size: 0.85rem; color: var(--electric-yellow); margin-bottom: 1rem; }
+
+/* Leaderboard */
+.leaderboard-wrap {
+  background: rgba(37,42,74,0.7);
+  border: 1px solid rgba(255,203,5,0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.leaderboard-wrap h3 { font-family: 'Orbitron', monospace; font-size: 0.85rem; color: var(--electric-yellow); margin-bottom: 1rem; }
+
+.lb-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.lb-name { font-weight: 600; font-size: 0.88rem; }
+.lb-score { font-family: 'Orbitron', monospace; font-size: 0.8rem; color: var(--electric-yellow); }
+.lb-xp { font-size: 0.7rem; color: rgba(248,249,250,0.4); }
+</style>
+</head>
+<body>
+  <noscript>
+    <div style="padding:2rem;font-family:Inter,system-ui;background:#1B1F3B;color:#F8F9FA;">
+      This page was removed. Go to <a href="scanner.html" style="color:#FFCB05;">Emotion Scanner</a>.
+    </div>
+  </noscript>
+  <script>window.location.replace('scanner.html');</script>
+<canvas id="particles-canvas"></canvas>
+<nav class="navbar" id="main-nav"></nav>
+
+<div class="page-content">
+<div class="arena-page">
+  <div style="text-align:center;margin-bottom:2rem;">
+    <h1 class="section-title">Redirecting…</h1>
+    <p class="section-subtitle">This page was removed. Taking you to the Emotion Scanner.</p>
+  </div>
+
+  <!-- Trainer Level Card -->
+  <div class="level-card animate-on-scroll">
+    <div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.8rem;color:rgba(248,249,250,0.5);letter-spacing:0.1em;margin-bottom:0.5rem;">SUPPORT TRAINER</div>
+      <div class="trainer-name">Agent Ash K.</div>
+      <div class="trainer-title">🏅 Emotion Master · Support Champion</div>
+      <div class="xp-bar-wrapper">
+        <div class="xp-bar" id="xp-bar" style="width:0%"></div>
+      </div>
+      <div class="xp-label">
+        <span id="xp-current">0 XP</span>
+        <span>Level 12 → 13 (Next: 9,000 XP)</span>
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <span class="type-badge type-fire">🔥 Anger Tamer</span>
+        <span class="type-badge type-psychic">🔮 Empathy Master</span>
+        <span class="type-badge type-electric">⚡ Speed Resolver</span>
+      </div>
+    </div>
+    <div class="level-badge">
+      <div class="level-num" id="level-num">0</div>
+      <div class="level-text">LEVEL</div>
+    </div>
+  </div>
+
+  <!-- Arena Stats -->
+  <div class="arena-stats">
+    <div class="stat-card">
+      <span class="stat-icon">🎫</span>
+      <div class="stat-num" style="color:#FFD93D;" id="s-resolved">0</div>
+      <div class="stat-lbl">Tickets Resolved</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">⚡</span>
+      <div class="stat-num" style="color:#6BCB77;" id="s-xp">0</div>
+      <div class="stat-lbl">Total XP Earned</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">🔥</span>
+      <div class="stat-num" style="color:#FF4D4D;" id="s-streak">0</div>
+      <div class="stat-lbl">Win Streak 🔥</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">⭐</span>
+      <div class="stat-num" style="color:#FF66C4;" id="s-rating">0</div>
+      <div class="stat-lbl">Avg Rating (/5)</div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="badges-section">
+    <h2 class="section-title" style="font-size:1.2rem;margin-bottom:1rem;">🎖 Achievement Badges</h2>
+    <div class="badges-grid">
+      <div class="badge-card unlocked">
+        <div class="badge-new">NEW!</div>
+        <span class="badge-icon">🔥</span>
+        <div class="badge-name">Anger Tamer</div>
+        <div class="badge-desc">Resolved 50 Fire-type tickets</div>
+      </div>
+      <div class="badge-card unlocked">
+        <span class="badge-icon">🧠</span>
+        <div class="badge-name">Empathy Master</div>
+        <div class="badge-desc">100% empathy score 10 sessions</div>
+      </div>
+      <div class="badge-card unlocked">
+        <span class="badge-icon">⚡</span>
+        <div class="badge-name">Speed Resolver</div>
+        <div class="badge-desc">Avg response under 2 minutes</div>
+      </div>
+      <div class="badge-card unlocked">
+        <span class="badge-icon">🏆</span>
+        <div class="badge-name">Support Champion</div>
+        <div class="badge-desc">Top agent for 3 weeks</div>
+      </div>
+      <div class="badge-card unlocked">
+        <span class="badge-icon">💧</span>
+        <div class="badge-name">Tide Turner</div>
+        <div class="badge-desc">Converted 20 sad to happy</div>
+      </div>
+      <div class="badge-card unlocked">
+        <span class="badge-icon">🌿</span>
+        <div class="badge-name">Zen Master</div>
+        <div class="badge-desc">No escalations for 7 days</div>
+      </div>
+      <div class="badge-card locked">
+        <span class="badge-icon">🔮</span>
+        <div class="badge-name">Mind Reader</div>
+        <div class="badge-desc">Detect all 6 emotion types in one shift</div>
+      </div>
+      <div class="badge-card locked">
+        <span class="badge-icon">✨</span>
+        <div class="badge-name">Love Magnet</div>
+        <div class="badge-desc">30 Fairy-type loyalty conversions</div>
+      </div>
+      <div class="badge-card locked">
+        <span class="badge-icon">🚀</span>
+        <div class="badge-name">Rocket Stopper</div>
+        <div class="badge-desc">De-escalate 100 critical alerts</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts + Leaderboard -->
+  <div class="arena-main">
+    <div>
+      <div class="chart-wrap" style="margin-bottom:1.5rem;">
+        <h3>📈 XP Progress This Month</h3>
+        <canvas id="xp-chart" height="180"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <h3>🎯 Emotion Resolution Rate</h3>
+        <canvas id="resolution-chart" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="leaderboard-wrap">
+      <h3>🏅 Team Leaderboard</h3>
+      <div id="leaderboard-list"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+renderNav();
+initGSAP();
+
+// Animate counters on load
+window.addEventListener('load', () => {
+  animateCounter(document.getElementById('s-resolved'), 247);
+  animateCounter(document.getElementById('s-xp'), 8420);
+  animateCounter(document.getElementById('s-streak'), 14);
+  const ratingEl = document.getElementById('s-rating');
+  let rv = 0;
+  const ri = setInterval(() => {
+    rv += 0.1;
+    ratingEl.textContent = rv.toFixed(1);
+    if (rv >= 4.8) { ratingEl.textContent = '4.8'; clearInterval(ri); }
+  }, 40);
+
+  animateCounter(document.getElementById('level-num'), 12);
+
+  const xpBar = document.getElementById('xp-bar');
+  setTimeout(() => { xpBar.style.width = '78%'; }, 200);
+
+  const xpCurrent = document.getElementById('xp-current');
+  animateCounter({ textContent: '' }, 7840, 1500);
+  let xv = 0;
+  const xi = setInterval(() => {
+    xv += 60;
+    xpCurrent.textContent = xv.toLocaleString() + ' XP';
+    if (xv >= 7840) { xpCurrent.textContent = '7,840 XP'; clearInterval(xi); }
+  }, 20);
+});
+
+// XP Chart
+const xpCtx = document.getElementById('xp-chart').getContext('2d');
+new Chart(xpCtx, {
+  type: 'bar',
+  data: {
+    labels: ['Week 1','Week 2','Week 3','Week 4'],
+    datasets: [{
+      label: 'XP Earned',
+      data: [1240, 1890, 2100, 2590],
+      backgroundColor: ['rgba(255,203,5,0.4)','rgba(255,203,5,0.5)','rgba(255,203,5,0.6)','rgba(255,203,5,0.8)'],
+      borderColor: '#FFCB05', borderWidth: 2, borderRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: 'rgba(248,249,250,0.6)' }, grid: { color: 'rgba(255,255,255,0.03)' } },
+      y: { ticks: { color: 'rgba(248,249,250,0.6)' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+    }
+  }
+});
+
+// Resolution chart
+const resCtx = document.getElementById('resolution-chart').getContext('2d');
+new Chart(resCtx, {
+  type: 'radar',
+  data: {
+    labels: ['🔥 Angry','💧 Sad','⚡ Happy','🌿 Calm','🔮 Anxious','✨ Love'],
+    datasets: [{
+      label: 'Resolution Rate %',
+      data: [82, 91, 98, 96, 88, 99],
+      backgroundColor: 'rgba(255,203,5,0.1)',
+      borderColor: '#FFCB05', borderWidth: 2,
+      pointBackgroundColor: '#FFCB05', pointRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      r: {
+        ticks: { color: 'rgba(248,249,250,0.4)', backdropColor: 'transparent', font: { size: 9 } },
+        grid: { color: 'rgba(255,255,255,0.06)' },
+        pointLabels: { color: 'rgba(248,249,250,0.7)', font: { size: 10 } },
+        suggestedMin: 60, suggestedMax: 100
+      }
+    }
+  }
+});
+
+// Leaderboard
+const leaders = [
+  { rank: '🥇', name: 'Agent Ash K.', xp: 8420, badge: '🏆', color: '#FFD93D' },
+  { rank: '🥈', name: 'Misty W.', xp: 7890, badge: '🔮', color: '#C0C0C0' },
+  { rank: '🥉', name: 'Brock S.', xp: 7230, badge: '🌿', color: '#CD7F32' },
+  { rank: '4', name: 'Dawn P.', xp: 6800, badge: '⚡', color: 'rgba(248,249,250,0.5)' },
+  { rank: '5', name: 'Gary O.', xp: 6420, badge: '🔥', color: 'rgba(248,249,250,0.5)' },
+  { rank: '6', name: 'Serena B.', xp: 5990, badge: '✨', color: 'rgba(248,249,250,0.5)' },
+  { rank: '7', name: 'Clemont T.', xp: 5600, badge: '💧', color: 'rgba(248,249,250,0.5)' },
+];
+
+const lbEl = document.getElementById('leaderboard-list');
+leaders.forEach(l => {
+  lbEl.innerHTML += `
+    <div class="leaderboard-row" ${l.rank === '🥇' ? 'style="border-color:rgba(255,203,5,0.4);background:rgba(255,203,5,0.05);"' : ''}>
+      <div class="leaderboard-rank" style="color:${l.color};">${l.rank}</div>
+      <div class="lb-avatar" style="background:rgba(37,42,74,0.8);">${l.badge}</div>
+      <div style="flex:1;">
+        <div class="lb-name" ${l.rank === '🥇' ? 'style="color:var(--electric-yellow);"' : ''}>${l.name}</div>
+        <div class="lb-xp">${l.xp.toLocaleString()} XP</div>
+      </div>
+    </div>`;
+});
+</script>
+</body>
+</html>

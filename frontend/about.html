@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — EmotionDex Hackathon Pitch</title>
+<meta name="description" content="EmotionDex hackathon pitch — problem, solution, AI model, impact, and future scope.">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.about-page { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+
+/* Hero banner */
+.pitch-hero {
+  background: linear-gradient(135deg, rgba(42,117,187,0.25), rgba(155,93,229,0.2));
+  border: 1px solid rgba(255,203,5,0.2);
+  border-radius: 20px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative; overflow: hidden;
+}
+
+.pitch-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FFCB05' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='10'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.pitch-hero h1 { font-family: 'Orbitron', monospace; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; }
+.pitch-hero p { color: rgba(248,249,250,0.7); max-width: 600px; margin: 1rem auto 2rem; line-height: 1.7; font-size: 1rem; }
+
+.hackathon-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(255,59,48,0.15);
+  border: 1px solid rgba(255,59,48,0.3);
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.75rem;
+  color: #FF6B60;
+  margin-bottom: 1.5rem;
+}
+
+/* Sections */
+.pitch-section { margin-bottom: 3rem; }
+.pitch-section h2 { font-family: 'Orbitron', monospace; font-size: 1.3rem; color: var(--electric-yellow); margin-bottom: 1rem; padding-left: 1rem; border-left: 3px solid var(--electric-yellow); }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+.info-card {
+  background: rgba(37,42,74,0.6);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.info-card h3 { font-family: 'Orbitron', monospace; font-size: 0.9rem; margin-bottom: 0.75rem; }
+
+.bullet-list { list-style: none; }
+.bullet-list li { display: flex; gap: 0.6rem; margin-bottom: 0.6rem; font-size: 0.88rem; color: rgba(248,249,250,0.75); line-height: 1.5; }
+.bullet-list li::before { content: '▶'; color: var(--electric-yellow); font-size: 0.6rem; margin-top: 0.4rem; flex-shrink: 0; }
+
+/* Tech stack pills */
+.tech-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.tech-pill {
+  background: rgba(42,117,187,0.15);
+  border: 1px solid rgba(42,117,187,0.3);
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  color: var(--poke-blue);
+  font-weight: 600;
+}
+
+/* Impact numbers */
+.impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 700px) { .impact-grid { grid-template-columns: 1fr; } }
+
+.impact-card {
+  background: rgba(37,42,74,0.6);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.impact-icon { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; }
+.impact-num { font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 900; color: var(--electric-yellow); }
+.impact-lbl { font-size: 0.82rem; color: rgba(248,249,250,0.5); margin-top: 0.25rem; }
+
+/* SDG cards */
+.sdg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+@media (max-width: 800px) { .sdg-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.sdg-card {
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Timeline */
+.timeline { position: relative; padding-left: 2rem; }
+.timeline::before { content: ''; position: absolute; left: 0.5rem; top: 0; bottom: 0; width: 2px; background: rgba(255,203,5,0.2); }
+
+.timeline-item { position: relative; margin-bottom: 1.5rem; }
+.timeline-item::before { content: ''; position: absolute; left: -1.75rem; top: 0.35rem; width: 10px; height: 10px; border-radius: 50%; background: var(--electric-yellow); box-shadow: 0 0 8px var(--electric-yellow); }
+.timeline-phase { font-family: 'Orbitron', monospace; font-size: 0.75rem; color: var(--electric-yellow); margin-bottom: 0.25rem; }
+.timeline-text { font-size: 0.88rem; color: rgba(248,249,250,0.7); line-height: 1.5; }
+
+/* CTA banner */
+.cta-banner {
+  background: linear-gradient(135deg, rgba(255,203,5,0.15), rgba(255,102,196,0.1));
+  border: 2px solid rgba(255,203,5,0.3);
+  border-radius: 20px;
+  padding: 2.5rem;
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.cta-banner h2 { font-family: 'Orbitron', monospace; font-size: 1.8rem; color: var(--electric-yellow); margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<canvas id="particles-canvas"></canvas>
+<nav class="navbar" id="main-nav"></nav>
+
+<div class="page-content">
+<div class="about-page">
+
+  <!-- Hero -->
+  <div class="pitch-hero">
+    <div class="hackathon-badge">🏆 HACKATHON 2026 — SUBMISSION</div>
+    <h1><span class="gradient-text">EmotionDex</span></h1>
+    <p>The world's first Pokémon-themed AI sentiment co-pilot for customer support. We turn every conversation into actionable emotional intelligence.</p>
+    <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;">
+      <button class="btn-primary" onclick="window.location='scanner.html'">⚡ Try Demo</button>
+      <button class="btn-secondary" onclick="window.location='pokedex.html'">📖 Emotion Pokédex</button>
+    </div>
+  </div>
+
+  <!-- Problem -->
+  <div class="pitch-section animate-on-scroll">
+    <h2>🔥 The Problem</h2>
+    <div class="two-col">
+      <div class="info-card" style="border-color:rgba(255,77,77,0.2);">
+        <h3 style="color:var(--angry);">Customer Support is Broken</h3>
+        <ul class="bullet-list">
+          <li>Support teams handle hundreds of messages daily with zero emotional context</li>
+          <li>Angry customers escalate to churn before agents even detect frustration</li>
+          <li>One-size-fits-all responses fail customers with diverse emotional states</li>
+          <li>Agents experience burnout from emotional labor without AI assistance</li>
+          <li>73% of customers abandon brands after 1 bad support experience</li>
+        </ul>
+      </div>
+      <div class="info-card" style="border-color:rgba(255,203,5,0.2);">
+        <h3 style="color:var(--electric-yellow);">The Cost of Emotional Ignorance</h3>
+        <div class="impact-grid" style="margin-top:0.5rem;">
+          <div class="impact-card" style="background:rgba(255,77,77,0.1);">
+            <span class="impact-icon">💸</span>
+            <div class="impact-num" style="font-size:1.3rem;">$1.6T</div>
+            <div class="impact-lbl">Lost annually to poor CX globally</div>
+          </div>
+          <div class="impact-card" style="background:rgba(255,77,77,0.1);">
+            <span class="impact-icon">😤</span>
+            <div class="impact-num" style="font-size:1.3rem;">68%</div>
+            <div class="impact-lbl">Customers leave due to feeling ignored</div>
+          </div>
+          <div class="impact-card" style="background:rgba(255,77,77,0.1);">
+            <span class="impact-icon">⏱</span>
+            <div class="impact-num" style="font-size:1.3rem;">4.5h</div>
+            <div class="impact-lbl">Avg wait time that triggers anger</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Solution -->
+  <div class="pitch-section animate-on-scroll">
+    <h2>⚡ The Solution — EmotionDex</h2>
+    <div class="info-card" style="border-color:rgba(255,203,5,0.2);margin-bottom:1rem;">
+      <h3 style="color:var(--electric-yellow);">How It Works</h3>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-phase">STEP 1 — DETECT</div>
+          <div class="timeline-text">Customer sends a message → local NLP model analyzes tone, keywords, and sentiment patterns in real-time.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">STEP 2 — CLASSIFY</div>
+          <div class="timeline-text">Detected emotion is mapped to one of 6 Pokémon types (Fire=Anger, Water=Sad, Electric=Joy, etc.) with confidence score.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">STEP 3 — PRIORITIZE</div>
+          <div class="timeline-text">Priority score 0-100 assigned. Critical Fire-types trigger Team Rocket alerts. Psychic-types get fast-track queuing.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">STEP 4 — RESPOND</div>
+          <div class="timeline-text">AI generates empathetic, mode-appropriate response (Calm / Premium / Crisis) — agent reviews and sends in one click.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">STEP 5 — IMPROVE</div>
+          <div class="timeline-text">All interactions feed into actionable learnings — emotional triggers, escalation patterns, and coaching opportunities.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tech Stack -->
+  <div class="pitch-section animate-on-scroll">
+    <h2>⚙ Technology Stack</h2>
+    <div class="two-col">
+      <div class="info-card">
+        <h3 style="color:var(--poke-blue);">Frontend</h3>
+        <div class="tech-grid">
+          <span class="tech-pill">HTML5</span>
+          <span class="tech-pill">Vanilla CSS</span>
+          <span class="tech-pill">JavaScript ES6+</span>
+          <span class="tech-pill">Chart.js</span>
+          <span class="tech-pill">Canvas API</span>
+        </div>
+      </div>
+      <div class="info-card">
+        <h3 style="color:var(--anxiety);">AI / Backend</h3>
+        <div class="tech-grid">
+          <span class="tech-pill" style="color:var(--anxiety);border-color:rgba(155,93,229,0.3);background:rgba(155,93,229,0.1);">Local Reply Templates</span>
+          <span class="tech-pill" style="color:var(--anxiety);border-color:rgba(155,93,229,0.3);background:rgba(155,93,229,0.1);">NLP Sentiment Analysis</span>
+          <span class="tech-pill" style="color:var(--anxiety);border-color:rgba(155,93,229,0.3);background:rgba(155,93,229,0.1);">Keyword Emotion Engine</span>
+          <span class="tech-pill" style="color:var(--anxiety);border-color:rgba(155,93,229,0.3);background:rgba(155,93,229,0.1);">Priority Scoring Algorithm</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Impact -->
+  <div class="pitch-section animate-on-scroll">
+    <h2>🌍 Impact & SDG Alignment</h2>
+    <div class="impact-grid" style="margin-bottom:1.5rem;">
+      <div class="impact-card">
+        <span class="impact-icon">📉</span>
+        <div class="impact-num">40%</div>
+        <div class="impact-lbl">Reduction in escalation rate</div>
+      </div>
+      <div class="impact-card">
+        <span class="impact-icon">⚡</span>
+        <div class="impact-num">60%</div>
+        <div class="impact-lbl">Faster response time</div>
+      </div>
+      <div class="impact-card">
+        <span class="impact-icon">💚</span>
+        <div class="impact-num">35%</div>
+        <div class="impact-lbl">Agent burnout reduction</div>
+      </div>
+    </div>
+
+    <div class="sdg-grid">
+      <div class="sdg-card" style="background:rgba(255,203,5,0.1);border:1px solid rgba(255,203,5,0.2);color:var(--electric-yellow);">
+        🎓 SDG 4<br>Quality Education
+        <div style="font-size:0.7rem;color:rgba(248,249,250,0.4);margin-top:0.25rem;">Agent skill building via XP gamification</div>
+      </div>
+      <div class="sdg-card" style="background:rgba(107,203,119,0.1);border:1px solid rgba(107,203,119,0.2);color:var(--calm);">
+        💼 SDG 8<br>Decent Work
+        <div style="font-size:0.7rem;color:rgba(248,249,250,0.4);margin-top:0.25rem;">Reduces agent burnout, improves working conditions</div>
+      </div>
+      <div class="sdg-card" style="background:rgba(77,150,255,0.1);border:1px solid rgba(77,150,255,0.2);color:var(--sad);">
+        🏭 SDG 9<br>Industry Innovation
+        <div style="font-size:0.7rem;color:rgba(248,249,250,0.4);margin-top:0.25rem;">AI-powered CX infrastructure innovation</div>
+      </div>
+      <div class="sdg-card" style="background:rgba(255,102,196,0.1);border:1px solid rgba(255,102,196,0.2);color:var(--love);">
+        🤝 SDG 17<br>Partnerships
+        <div style="font-size:0.7rem;color:rgba(248,249,250,0.4);margin-top:0.25rem;">B2B SaaS model connecting brands & consumers</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Future Scope -->
+  <div class="pitch-section animate-on-scroll">
+    <h2>🚀 Future Scope</h2>
+    <div class="two-col">
+      <div class="info-card">
+        <h3 style="color:var(--calm);">Phase 2 — Q3 2026</h3>
+        <ul class="bullet-list">
+          <li>Voice sentiment detection (emotion from call audio)</li>
+          <li>Multi-language support (30+ languages)</li>
+          <li>CRM integrations (Salesforce, Zendesk, HubSpot)</li>
+          <li>Real-time Pokémon evolution alerts (escalation visualization)</li>
+          <li>Mobile app for on-the-go agents</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h3 style="color:var(--anxiety);">Phase 3 — Q1 2027</h3>
+        <ul class="bullet-list">
+          <li>Predictive emotion modeling (detect before escalation)</li>
+          <li>Full Pokémon battle UI for team competitions</li>
+          <li>Custom emotion training per industry vertical</li>
+          <li>Emotion evolution timeline visualization</li>
+          <li>Enterprise AI model fine-tuning on company data</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Startup Potential -->
+  <div class="pitch-section animate-on-scroll">
+    <h2>💡 Startup Potential</h2>
+    <div class="info-card" style="border-color:rgba(255,203,5,0.2);">
+      <div class="two-col">
+        <div>
+          <h3 style="color:var(--electric-yellow);">Business Model</h3>
+          <ul class="bullet-list">
+            <li><strong style="color:var(--white);">Starter:</strong> $49/mo — Up to 3 agents, basic emotion scanning</li>
+            <li><strong style="color:var(--white);">Growth:</strong> $199/mo — 15 agents, dashboard, AI replies</li>
+            <li><strong style="color:var(--white);">Enterprise:</strong> Custom — Unlimited, white-label, custom AI model</li>
+            <li><strong style="color:var(--white);">API Access:</strong> Pay-per-scan for developers</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="color:var(--electric-yellow);">Market Opportunity</h3>
+          <ul class="bullet-list">
+            <li>Global CX software market: $14.5B by 2027</li>
+            <li>AI in customer service: $3.5B by 2026</li>
+            <li>Target: 50M+ support agents globally</li>
+            <li>First-mover advantage in emotion-type classification</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-banner animate-on-scroll">
+    <div style="font-size:3rem;margin-bottom:1rem;">⚡</div>
+    <h2>"Gotta Catch Every Emotion"</h2>
+    <p style="color:rgba(248,249,250,0.6);max-width:500px;margin:1rem auto 2rem;line-height:1.7;">
+      EmotionDex is ready to transform how the world delivers customer support. One emotion at a time.
+    </p>
+    <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;">
+      <button class="btn-primary" onclick="window.location='scanner.html'">⚡ Start Scanning</button>
+      <button class="btn-secondary" onclick="window.location='index.html'">🏠 Back to Home</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="js/main.js"></script>
+<script>renderNav();</script>
+</body>
+</html>

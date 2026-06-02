@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emotion Pokédex — EmotionDex</title>
+<meta name="description" content="Complete reference for all 6 emotion types with strategies, severity meters, and interactive flip cards.">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+.pokedex-page { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+/* Flip card */
+.flip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+@media (max-width: 900px) { .flip-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 580px) { .flip-grid { grid-template-columns: 1fr; } }
+
+.flip-card { perspective: 1200px; height: 360px; cursor: pointer; }
+
+.flip-inner {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+
+.flip-front, .flip-back {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  border-radius: 20px;
+  padding: 2rem;
+  overflow: hidden;
+}
+
+.flip-back { transform: rotateY(180deg); }
+
+.flip-card-icon { font-size: 5rem; margin-bottom: 1rem; display: block; filter: drop-shadow(0 0 16px currentColor); }
+
+.flip-card-type { font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.flip-card-name { font-family: 'Orbitron', monospace; font-size: 1.6rem; font-weight: 900; margin-bottom: 0.75rem; }
+
+.flip-card-desc { font-size: 0.85rem; color: rgba(248,249,250,0.7); line-height: 1.6; }
+
+.flip-hint { position: absolute; bottom: 1rem; right: 1rem; font-size: 0.7rem; color: rgba(248,249,250,0.3); font-family: 'Rajdhani', sans-serif; }
+
+/* Severity meters */
+.severity-meter { margin-top: 1rem; }
+.severity-label { display: flex; justify-content: space-between; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; color: rgba(248,249,250,0.6); margin-bottom: 0.3rem; }
+
+/* Strategy list */
+.strategy-item { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.6rem; font-size: 0.82rem; color: rgba(248,249,250,0.75); line-height: 1.5; }
+.strategy-item::before { content: '▶'; color: var(--electric-yellow); font-size: 0.6rem; margin-top: 0.35rem; flex-shrink: 0; }
+
+/* Weakness tags */
+.weakness-tag { display: inline-block; background: rgba(255,59,48,0.15); border: 1px solid rgba(255,59,48,0.3); border-radius: 10px; padding: 0.2rem 0.6rem; font-size: 0.72rem; color: #FF6B60; margin: 0.2rem; font-family: 'Rajdhani', sans-serif; }
+
+/* Pokédex number badge */
+.pdx-num { position: absolute; top: 1rem; right: 1rem; font-family: 'Orbitron', monospace; font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+
+/* Search / filter bar */
+.filter-bar { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.filter-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255,203,5,0.2);
+  background: rgba(37,42,74,0.6);
+  color: rgba(248,249,250,0.6);
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  transition: all 0.3s;
+}
+.filter-btn:hover, .filter-btn.active { background: rgba(255,203,5,0.1); border-color: var(--electric-yellow); color: var(--electric-yellow); }
+
+/* Master info section */
+.master-info {
+  background: rgba(37,42,74,0.5);
+  border: 1px solid rgba(255,203,5,0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 700px) { .master-info { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<canvas id="particles-canvas"></canvas>
+<nav class="navbar" id="main-nav"></nav>
+
+<div class="page-content">
+<div class="pokedex-page">
+  <div style="text-align:center;margin-bottom:2.5rem;">
+    <h1 class="section-title">📖 Emotion Pokédex</h1>
+    <p class="section-subtitle">Complete reference for all 6 emotion types. Click any card to flip and reveal handling strategies.</p>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterCards('all', this)">All Types</button>
+    <button class="filter-btn" onclick="filterCards('fire', this)">🔥 Fire</button>
+    <button class="filter-btn" onclick="filterCards('water', this)">💧 Water</button>
+    <button class="filter-btn" onclick="filterCards('electric', this)">⚡ Electric</button>
+    <button class="filter-btn" onclick="filterCards('grass', this)">🌿 Grass</button>
+    <button class="filter-btn" onclick="filterCards('psychic', this)">🔮 Psychic</button>
+    <button class="filter-btn" onclick="filterCards('fairy', this)">✨ Fairy</button>
+  </div>
+
+  <div class="flip-grid" id="pokedex-grid"></div>
+
+  <!-- Type chart -->
+  <div style="margin-top:3rem;">
+    <h2 class="section-title" style="font-size:1.4rem;margin-bottom:1rem;">⚔ Emotion Type Interaction Chart</h2>
+    <div class="master-info">
+      <div>
+        <h3 style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--electric-yellow);margin-bottom:1rem;">Strong Against</h3>
+        <div class="strategy-item">🔥 Fire-type anger requires immediate escalation — fast response neutralizes it</div>
+        <div class="strategy-item">💧 Water-type sadness responds well to empathy and compensation offers</div>
+        <div class="strategy-item">🔮 Psychic-type anxiety is calmed by clear timelines and reassurance</div>
+        <div class="strategy-item">🌿 Grass-type calm is maintained with efficient, clear responses</div>
+        <div class="strategy-item">⚡ Electric-type joy amplifies with upsells and loyalty rewards</div>
+        <div class="strategy-item">✨ Fairy-type love converts easily to brand ambassadors</div>
+      </div>
+      <div>
+        <h3 style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--poke-red);margin-bottom:1rem;">Dangerous Evolutions</h3>
+        <div class="strategy-item">🌿 Calm → 🔮 Anxious if response time exceeds 10 minutes</div>
+        <div class="strategy-item">🔮 Anxious → 🔥 Angry if left unresolved for 30+ minutes</div>
+        <div class="strategy-item">💧 Sad → 🔥 Angry if no empathy is shown within 2 interactions</div>
+        <div class="strategy-item">⚡ Happy → 💧 Sad if promises are broken after positive interaction</div>
+        <div class="strategy-item">🔥 Angry → Churn if not resolved in same session (irreversible!)</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="js/main.js"></script>
+<script>
+renderNav();
+
+const entries = [
+  {
+    num: '#001', type: 'fire', typeClass: 'type-fire', typeLabel: 'Fire Type',
+    icon: '🔥', name: 'Anger', color: '#FF4D4D',
+    desc: 'A critical emotional state where the customer is experiencing intense frustration. Requires immediate intervention to prevent churn.',
+    severity: 95, priority: 'CRITICAL', urgency: 'Immediate',
+    weaknesses: ['Slow response', 'Dismissive tone', 'Transferred calls', 'No ownership'],
+    strategies: ['Acknowledge frustration immediately', 'Use "I understand" and "I\'m sorry"', 'Escalate to human senior agent', 'Offer concrete resolution with timeline', 'Follow up within 1 hour'],
+    bgGrad: 'linear-gradient(135deg, rgba(255,77,77,0.15), rgba(27,31,59,0.9))',
+    borderColor: 'rgba(255,77,77,0.4)'
+  },
+  {
+    num: '#002', type: 'water', typeClass: 'type-water', typeLabel: 'Water Type',
+    icon: '💧', name: 'Sadness', color: '#4D96FF',
+    desc: 'Customer is experiencing disappointment or emotional distress. A sensitive situation requiring empathy and gentle resolution.',
+    severity: 70, priority: 'HIGH', urgency: 'Within 15 mins',
+    weaknesses: ['Scripted responses', 'Lack of empathy', 'No acknowledgment', 'Delays'],
+    strategies: ['Lead with genuine empathy', 'Listen without interrupting', 'Offer compensation or gesture', 'Provide personal follow-up contact', 'Check in after resolution'],
+    bgGrad: 'linear-gradient(135deg, rgba(77,150,255,0.15), rgba(27,31,59,0.9))',
+    borderColor: 'rgba(77,150,255,0.4)'
+  },
+  {
+    num: '#003', type: 'electric', typeClass: 'type-electric', typeLabel: 'Electric Type',
+    icon: '⚡', name: 'Joy', color: '#FFD93D',
+    desc: 'Customer is in a highly positive state. A golden opportunity to reinforce loyalty and create brand ambassadors.',
+    severity: 20, priority: 'POSITIVE', urgency: 'Standard',
+    weaknesses: ['Ignoring positive feedback', 'Missing upsell moment', 'Not asking for reviews'],
+    strategies: ['Match their energy and enthusiasm', 'Thank them genuinely', 'Offer loyalty reward or upgrade', 'Request testimonial or review', 'Introduce referral program'],
+    bgGrad: 'linear-gradient(135deg, rgba(255,217,61,0.15), rgba(27,31,59,0.9))',
+    borderColor: 'rgba(255,217,61,0.4)'
+  },
+  {
+    num: '#004', type: 'grass', typeClass: 'type-grass', typeLabel: 'Grass Type',
+    icon: '🌿', name: 'Calm', color: '#6BCB77',
+    desc: 'Customer is in a neutral, composed state. Standard support interaction with no escalation risk if handled efficiently.',
+    severity: 35, priority: 'NORMAL', urgency: 'Within 1 hour',
+    weaknesses: ['Long wait times', 'Circular conversations', 'Unresolved issue after contact'],
+    strategies: ['Provide clear, concise information', 'Resolve in fewest interactions', 'Confirm understanding before closing', 'Offer self-service resources', 'Ensure complete resolution'],
+    bgGrad: 'linear-gradient(135deg, rgba(107,203,119,0.15), rgba(27,31,59,0.9))',
+    borderColor: 'rgba(107,203,119,0.4)'
+  },
+  {
+    num: '#005', type: 'psychic', typeClass: 'type-psychic', typeLabel: 'Psychic Type',
+    icon: '🔮', name: 'Anxiety', color: '#9B5DE5',
+    desc: 'Customer is experiencing worry or fear about an outcome. Requires immediate reassurance and clear communication.',
+    severity: 80, priority: 'HIGH', urgency: 'Within 10 mins',
+    weaknesses: ['Vague timelines', 'Uncertain language', 'No status updates', 'Being transferred'],
+    strategies: ['Reassure immediately with facts', 'Give specific ETAs — never "soon"', 'Proactive status updates', 'Offer direct agent contact', 'Create escalation case with ID'],
+    bgGrad: 'linear-gradient(135deg, rgba(155,93,229,0.15), rgba(27,31,59,0.9))',
+    borderColor: 'rgba(155,93,229,0.4)'
+  },
+  {
+    num: '#006', type: 'fairy', typeClass: 'type-fairy', typeLabel: 'Fairy Type',
+    icon: '✨', name: 'Love', color: '#FF66C4',
+    desc: 'Customer expressing deep brand loyalty and positive satisfaction. Your most valuable segment — nurture for lifetime value.',
+    severity: 10, priority: 'DELIGHT', urgency: 'Scheduled',
+    weaknesses: ['Taking them for granted', 'Missing retention opportunities'],
+    strategies: ['Make them feel truly special', 'Invite to loyalty program', 'Offer ambassador status', 'Personalized thank-you message', 'Exclusive early access to features'],
+    bgGrad: 'linear-gradient(135deg, rgba(255,102,196,0.15), rgba(27,31,59,0.9))',
+    borderColor: 'rgba(255,102,196,0.4)'
+  }
+];
+
+const grid = document.getElementById('pokedex-grid');
+
+entries.forEach(e => {
+  const card = document.createElement('div');
+  card.className = 'flip-card';
+  card.dataset.type = e.type;
+
+  card.innerHTML = `
+    <div class="flip-inner">
+      <!-- Front -->
+      <div class="flip-front" style="background:${e.bgGrad};border:2px solid ${e.borderColor};">
+        <span class="pdx-num">${e.num}</span>
+        <span class="flip-card-icon">${e.icon}</span>
+        <div class="flip-card-type"><span class="type-badge ${e.typeClass}">${e.typeLabel}</span></div>
+        <div class="flip-card-name" style="color:${e.color};">${e.name}</div>
+        <div class="flip-card-desc">${e.desc}</div>
+        <div class="severity-meter">
+          <div class="severity-label"><span>Severity</span><span style="color:${e.color};font-family:'Orbitron',monospace;font-size:0.7rem;">${e.severity}/100</span></div>
+          <div class="hp-bar-container"><div class="hp-bar sev-bar" data-pct="${e.severity}" style="width:0%;background:${e.color};"></div></div>
+        </div>
+        <span class="flip-hint">Click to flip ↩</span>
+      </div>
+      <!-- Back -->
+      <div class="flip-back" style="background:${e.bgGrad};border:2px solid ${e.borderColor};">
+        <span class="pdx-num">${e.num}</span>
+        <div style="margin-bottom:0.75rem;">
+          <span class="type-badge ${e.typeClass}">${e.typeLabel}</span>
+          <span style="font-family:'Orbitron',monospace;font-size:0.75rem;color:${e.color};margin-left:0.5rem;">${e.priority}</span>
+        </div>
+        <div style="font-family:'Orbitron',monospace;font-size:0.8rem;color:rgba(255,203,5,0.8);margin-bottom:0.5rem;">🛡 WEAKNESSES</div>
+        <div style="margin-bottom:0.75rem;">${e.weaknesses.map(w => `<span class="weakness-tag">${w}</span>`).join('')}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:0.8rem;color:rgba(107,203,119,0.8);margin-bottom:0.5rem;">⚔ STRATEGIES</div>
+        ${e.strategies.map(s => `<div class="strategy-item">${s}</div>`).join('')}
+        <span class="flip-hint">Click to flip ↩</span>
+      </div>
+    </div>`;
+
+  card.addEventListener('click', () => card.classList.toggle('flipped'));
+  grid.appendChild(card);
+
+  // Fill HP bars after render
+  setTimeout(() => {
+    card.querySelectorAll('.sev-bar').forEach(b => {
+      fillHPBar(b, parseInt(b.dataset.pct), b.style.background);
+    });
+  }, 300);
+});
+
+function filterCards(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.flip-card').forEach(c => {
+    c.style.display = (type === 'all' || c.dataset.type === type) ? 'block' : 'none';
+  });
+}
+</script>
+</body>
+</html>
